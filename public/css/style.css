@@ -75,8 +75,8 @@ body{
 
 .start-ghost{
   position:absolute;
-  left: 62%;
-  top: 10%;
+  left: 60%;
+  top: 8%;
   width: 86px;
   height:auto;
   pointer-events:none;
@@ -102,7 +102,7 @@ body{
 }
 
 .start-btn img{
-  width: 260px;
+  width: 200px;
   height:auto;
   display:block;
 }
@@ -112,152 +112,19 @@ body{
   to  { opacity:1; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* =========================
-   GAME
-========================= */
-.stage{
-  position:relative;
-  width:100%;
-  height:100%;
-  border-radius:24px;
-  overflow:hidden;
-  box-shadow: var(--shadow);
-  touch-action:none; /* drag/pinch */
-}
-
-.stage-bg{
-  width:100%;
-  height:100%;
-  background:#a7f7a7;
-}
-
-.icon-btn{
-  position:absolute;
-  width:56px;
-  height:56px;
-  border-radius:16px;
-  border:0;
-  background: rgba(255,255,255,.55);
-  display:grid;
-  place-items:center;
-  box-shadow: 0 8px 20px rgba(0,0,0,.18);
-  cursor:pointer;
-  padding:0;
-}
-
-.icon-btn img{
-  width:34px;
-  height:34px;
-  display:block;
-  user-select:none;
-  -webkit-user-drag:none;
-  pointer-events:none;
-}
-
-.icon-top-right{ top:18px; right:18px; }
-.icon-bottom-right{ right:18px; bottom:18px; }
-
-.drawer{
-  position:absolute;
-  top:18px;
-  right:18px;
-  bottom:18px;
-  width:120px;
-  border-radius:22px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 30px rgba(0,0,0,.18);
-  padding:10px;
-}
-.drawer-inner{ height:100%; overflow:auto; }
-
-.drawer-items{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.cobake-item{
-  height:64px;
-  border-radius:16px;
-  border: 1px solid rgba(255,255,255,.40);
-  background: rgba(255,255,255,.22);
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  padding:0;
-}
-
-.thumb-img{
-  width:48px;
-  height:48px;
-  object-fit:contain;
-  pointer-events:none;
-  user-select:none;
-  -webkit-user-drag:none;
-}
-
-.popup{
-  position:absolute;
-  right:18px;
-  bottom:90px;
-  width:160px;
-  border-radius:14px;
-  background: rgba(0,0,0,.78);
-  padding:10px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.popup-item{
-  border:0;
-  border-radius:10px;
-  padding:12px 14px;
-  background: rgba(255,255,255,.12);
-  color:#fff;
-  font-size:14px;
-  text-align:left;
-  cursor:pointer;
-}
-.popup-item:active{ transform: translateY(1px); }
-
-/* =========================
-   PIECE
-========================= */
-.piece{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: auto;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: auto;
-  touch-action:none;
-  cursor: grab;
-}
-
-.piece.is-dragging{
-  cursor: grabbing;
-}
-
 .legal-icons{
   position:absolute;
-  right: 40px;
-  bottom: 40px;
+  right: 18px;
+  bottom: 18px;
   display:flex;
-  gap: 14px;
+  gap: 12px;
   z-index: 50;
 }
 
 .legal-icons a{
   display:block;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .legal-icons img{

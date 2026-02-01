@@ -65,25 +65,25 @@ function getScaleFromData(id){
 }
 
 /**
- * スクショ2の「全体構図」に寄せるため、STARTの出現位置を固定化。
- * - STARTボタン中心付近（画面中央）は避ける
- * - 画面外に出ないように幅をclamp
- * - 大キャラは後ろ（z-index低め→高め）を統一
+ * START画面：出現「枠（位置）」は維持しつつ、
+ * 配置するコバケを毎回ランダムに入れ替える。
+ * - STARTボタン中心付近（画面中央）は避ける（枠で担保）
+ * - 画面外に出ない（clamp）
  */
 const START_LAYOUT = [
-  { id: "monja",  cx: 0.20, bottom: 0.01, z: 10 },
-  { id: "coron",  cx: 0.88, bottom: 0.00, z: 8  },
-  { id: "musshu", cx: 0.96, bottom: -0.02, z: 9 },
+  { cx: 0.20, bottom: 0.01, z: 10 },
+  { cx: 0.88, bottom: 0.00, z: 8  },
+  { cx: 0.96, bottom: -0.02, z: 9  },
 
-  { id: "well",   cx: 0.67, bottom: 0.11, z: 4  },
+  { cx: 0.67, bottom: 0.11, z: 4  },
 
-  { id: "wonka",  cx: 0.56, bottom: 0.00, z: 7  },
-  { id: "vazuu",  cx: 0.36, bottom: 0.00, z: 6  },
+  { cx: 0.56, bottom: 0.00, z: 7  },
+  { cx: 0.36, bottom: 0.00, z: 6  },
 
-  { id: "pipple", cx: 0.73, bottom: 0.00, z: 6  },
-  { id: "ruru",   cx: 0.79, bottom: 0.00, z: 6  },
-  { id: "coin",   cx: 0.64, bottom: 0.00, z: 6  },
-  { id: "fuuu",   cx: 0.59, bottom: 0.03, z: 6  }
+  { cx: 0.73, bottom: 0.00, z: 6  },
+  { cx: 0.79, bottom: 0.00, z: 6  },
+  { cx: 0.64, bottom: 0.00, z: 6  },
+  { cx: 0.59, bottom: 0.03, z: 6  }
 ];
 
 function startSequence(){
@@ -104,14 +104,23 @@ function startSequence(){
   // 画面外防止（巨大スケールでも最大この幅まで）
   const maxW = W * 0.60;
 
-  // layoutに無い id が来ても落ちないように（末尾に並べる）
-  const layoutMap = new Map(START_LAYOUT.map(x => [x.id, x]));
-  const ordered = [
-    ...START_LAYOUT.map(x => x.id).filter(id => list.some(c => c.id === id)),
-    ...list.map(c => c.id).filter(id => !layoutMap.has(id))
-  ];
+  // ids を毎回ランダム化（表示が固定化しないように）
+  const ids = list.map(c => c.id);
+  for (let i = ids.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
 
-  ordered.forEach((id, idx) => {
+  // 枠数ぶん配置（余りは末尾に安全配置）
+  const slots = START_LAYOUT.slice();
+  const extraDefault = { cx: 0.90, bottom: 0.00, z: 5 };
+
+  const orderedPairs = ids.map((id, idx) => {
+    const slot = slots[idx] || extraDefault;
+    return { id, slot };
+  });
+
+  orderedPairs.forEach(({ id, slot }, idx) => {
     const c = list.find(x => x.id === id) || { id };
 
     const img = document.createElement("img");
@@ -119,8 +128,6 @@ function startSequence(){
     img.src = `./assets/img/cobake/monokuro/color/${c.id}.png`;
     img.alt = "";
     img.draggable = false;
-
-    const cfg = layoutMap.get(c.id) || { cx: 0.90, bottom: 0.00, z: 5 };
 
     // size
     const s = getScaleFromData(c.id);
@@ -130,15 +137,14 @@ function startSequence(){
     img.style.height = "auto";
 
     // position (center-x)
-    const left = clamp((W * cfg.cx) - (w / 2), 0, Math.max(0, W - w));
+    const left = clamp((W * slot.cx) - (w / 2), 0, Math.max(0, W - w));
     img.style.left = `${left}px`;
 
     // position (bottom)
-    // CSSの bottom:8% を上書き。下に寄せる（0〜少しマイナスで足が切れない範囲を許容）
-    img.style.bottom = `${cfg.bottom * 100}%`;
+    img.style.bottom = `${slot.bottom * 100}%`;
 
     // layering
-    img.style.zIndex = String(cfg.z || 5);
+    img.style.zIndex = String(slot.z || 5);
 
     // timing
     img.style.animationDelay = `${baseDelay + stepDelay * idx}ms`;
@@ -147,7 +153,7 @@ function startSequence(){
   });
 
   // show start button after last pop
-  const total = baseDelay + stepDelay * ordered.length + 650;
+  const total = baseDelay + stepDelay * orderedPairs.length + 650;
   window.setTimeout(() => show(startBtn), total);
 }
 
