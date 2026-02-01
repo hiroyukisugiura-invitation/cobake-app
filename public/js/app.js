@@ -67,7 +67,7 @@ function startSequence(){
   order.forEach((c, idx) => {
     const img = document.createElement("img");
     img.className = "start-pop";
-    img.src = `./assets/img/cobake/color/${c.id}.png`;
+    img.src =`./assets/img/cobake/monokuro/color/${c.id}.png`;
     img.alt = "";
     img.draggable = false;
 
@@ -106,7 +106,7 @@ function buildCobakeList(){
 
     btn.innerHTML = `
       <img class="thumb-img"
-           src="./assets/img/cobake/monokuro/${c.id}.png"
+           src="./assets/img/cobake/monokuro/monokuro/${c.id}.png"
            alt="${c.name}"
            draggable="false" />
     `;
@@ -126,7 +126,7 @@ function spawnPiece(id){
 
   const img = document.createElement("img");
   img.className = "piece";
-  img.src = `./assets/img/cobake/monokuro/${id}.png`;
+  img.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
   img.alt = id;
   img.draggable = false;
 

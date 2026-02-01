@@ -13,24 +13,32 @@
     <section class="screen is-active" id="screenStart" aria-label="start">
       <div class="start-layer" id="startLayer">
         <!-- base -->
-        <img class="start-bg" src="./assets/ui/start_ui.png" alt="COBAKE Puzzle" />
+        <img class="start-bg" src="./assets/img/cobake/monokuro/ui/start_ui.png" alt="COBAKE Puzzle" />
 
         <!-- popping cobakes (JS will inject) -->
         <div class="start-pop-area" id="startPopArea" aria-hidden="true"></div>
 
         <!-- floating ghost icon -->
-        <img class="start-ghost" src="./assets/ui/button/charabutton.png" alt="" aria-hidden="true" />
+        <img class="start-ghost" src="./assets/img/cobake/monokuro/button/charabutton.png" alt="" aria-hidden="true" />
 
         <!-- start button (hidden until pop done) -->
         <button class="start-btn" id="startBtn" type="button" aria-label="start" hidden>
-          <img src="./assets/ui/start.png" alt="START" draggable="false" />
-
-          <div class="legal-icons">
-          <a href="./tokusyo.html" aria-label="特商法"><img src="./assets/img/ui/button/tokusyo.png" alt=""></a>
-          <a href="./riyoukiyaku.html" aria-label="利用規約"><img src="./assets/img/ui/button/hiroyukiyaku.png" alt=""></a>
-          <a href="./privacy.html" aria-label="プライバシー"><img src="./assets/img/ui/button/privacy.png" alt=""></a>
-        </div>
+          <img src="./assets/img/cobake/monokuro/button/start.png" alt="START" draggable="false" />
         </button>
+
+        <!-- legal icons (bottom-right) -->
+        <div class="legal-icons">
+          <a href="./tokusyo.html" aria-label="特商法">
+            <img src="./assets/img/cobake/monokuro/button/tokusyo.png" alt="">
+          </a>
+          <a href="./riyoukiyaku.html" aria-label="利用規約">
+            <img src="./assets/img/cobake/monokuro/button/riyoukiyaku.png" alt="">
+          </a>
+          <a href="./privacy.html" aria-label="プライバシー">
+            <img src="./assets/img/cobake/monokuro/button/privacy.png" alt="">
+          </a>
+        </div>
+
       </div>
     </section>
 
@@ -41,12 +49,12 @@
 
         <!-- right top: character drawer button -->
         <button class="icon-btn icon-top-right" id="ghostBtn" aria-label="ghost">
-          <img src="./assets/ui/button/charabutton.png" alt="" draggable="false" />
+          <img src="./assets/img/cobake/monokuro/button/charabutton.png" alt="" draggable="false" />
         </button>
 
         <!-- right bottom: pause/back button -->
         <button class="icon-btn icon-bottom-right" id="menuBtn" aria-label="menu">
-          <img src="./assets/ui/button/backbutton.png" alt="" draggable="false" />
+          <img src="./assets/img/cobake/monokuro/button/backbutton.png" alt="" draggable="false" />
         </button>
 
         <!-- right drawer -->
@@ -61,6 +69,7 @@
           <button class="popup-item" id="resumeBtn">きゅうけい</button>
           <button class="popup-item" id="quitBtn">やめる</button>
         </div>
+
       </div>
     </section>
 
