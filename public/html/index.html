@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>COBAKE App</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="app" id="app">
+
+    <!-- START -->
+    <section class="screen is-active" id="screenStart" aria-label="start">
+      <button class="tap-anywhere" id="startTap" aria-label="start">
+        <div class="start-card">
+          <p class="start-title">COBAKE</p>
+          <p class="start-sub">Tap anywhere</p>
+        </div>
+      </button>
+    </section>
+
+    <!-- GAME -->
+    <section class="screen" id="screenGame" aria-label="game">
+      <div class="stage">
+        <div class="stage-bg"></div>
+
+        <button class="icon-btn icon-top-right" id="ghostBtn" aria-label="ghost">
+          👻
+        </button>
+
+        <button class="icon-btn icon-bottom-right" id="menuBtn" aria-label="menu">
+          ×
+        </button>
+
+        <!-- right drawer -->
+        <aside class="drawer" id="drawer" aria-label="cobake list" hidden>
+          <div class="drawer-inner">
+            <p class="drawer-title">COBAKE</p>
+            <div class="drawer-items" id="cobakeList"></div>
+          </div>
+        </aside>
+
+        <!-- menu popup -->
+        <div class="popup" id="popup" hidden>
+          <button class="popup-item" id="resumeBtn">きゅうけい</button>
+          <button class="popup-item" id="quitBtn">やめる</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="./cobake-data.js"></script>
+  <script src="./app.js"></script>
+
+</body>
+</html>
