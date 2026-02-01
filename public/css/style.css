@@ -92,7 +92,7 @@ body{
 .start-btn{
   position:absolute;
   left:50%;
-  top:55%;
+  top:56.5%;
   transform: translate(-50%, -50%);
   border:0;
   background:transparent;
@@ -102,7 +102,7 @@ body{
 }
 
 .start-btn img{
-  width: 320px;
+  width: 260px;
   height:auto;
   display:block;
 }
@@ -247,12 +247,13 @@ body{
 
 .legal-icons{
   position:absolute;
-  right: 22px;
-  bottom: 22px;
+  right: 40px;
+  bottom: 40px;
   display:flex;
   gap: 14px;
   z-index: 50;
 }
+
 
 .legal-icons a{
   display:block;
