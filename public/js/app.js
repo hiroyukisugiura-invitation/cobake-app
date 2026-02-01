@@ -75,6 +75,12 @@ function startSequence(){
     img.style.left = `${x}%`;
     img.style.animationDelay = `${baseDelay + stepDelay * idx}ms`;
 
+    // サイズ基準：pipple(scale=1.0) を基準に倍率反映
+    const baseW = 220; // px（CSS .start-pop の基準幅）
+    const scale = (c && typeof c.scale === "number" ? c.scale : 1);
+    img.style.width = `${baseW * (scale > 0 ? scale : 1)}px`;
+    img.style.height = "auto";
+
     startPopArea.appendChild(img);
   });
 
@@ -120,6 +126,13 @@ function buildCobakeList(){
   });
 }
 
+function getCobakeScale(id){
+  const list = window.COBAKE_DATA || [];
+  const hit = list.find(x => x.id === id);
+  const s = hit && typeof hit.scale === "number" ? hit.scale : 1;
+  return s > 0 ? s : 1;
+}
+
 function spawnPiece(id){
   const old = stage.querySelector(".piece");
   if (old) old.remove();
@@ -129,6 +142,12 @@ function spawnPiece(id){
   img.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
   img.alt = id;
   img.draggable = false;
+
+  // サイズ基準：pipple(scale=1.0) を基準に倍率反映
+  const baseW = 120; // px（CSS .piece の基準幅）
+  const scale = getCobakeScale(id);
+  img.style.width = `${baseW * scale}px`;
+  img.style.height = "auto";
 
   stage.appendChild(img);
 }
