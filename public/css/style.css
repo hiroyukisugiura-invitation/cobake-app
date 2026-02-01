@@ -244,3 +244,32 @@ body{
 .piece.is-dragging{
   cursor: grabbing;
 }
+
+.legal-icons{
+  position:absolute;
+  right: 22px;
+  bottom: 22px;
+  display:flex;
+  gap: 14px;
+  z-index: 50;
+}
+
+.legal-icons a{
+  display:block;
+  width: 28px;
+  height: 28px;
+}
+
+.legal-icons img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display:block;
+  user-select:none;
+  -webkit-user-drag:none;
+  opacity: .95;
+}
+
+.legal-icons a:active{
+  transform: translateY(1px);
+}
