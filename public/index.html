@@ -11,31 +11,41 @@
 
     <!-- START -->
     <section class="screen is-active" id="screenStart" aria-label="start">
-      <button class="tap-anywhere" id="startTap" aria-label="start">
-        <div class="start-card">
-          <p class="start-title">COBAKE</p>
-          <p class="start-sub">Tap anywhere</p>
-        </div>
-      </button>
+      <div class="start-layer" id="startLayer">
+        <!-- base -->
+        <img class="start-bg" src="./assets/ui/start_ui.png" alt="COBAKE Puzzle" />
+
+        <!-- popping cobakes (JS will inject) -->
+        <div class="start-pop-area" id="startPopArea" aria-hidden="true"></div>
+
+        <!-- floating ghost icon -->
+        <img class="start-ghost" src="./assets/ui/button/charabutton.png" alt="" aria-hidden="true" />
+
+        <!-- start button (hidden until pop done) -->
+        <button class="start-btn" id="startBtn" type="button" aria-label="start" hidden>
+          <img src="./assets/ui/start.png" alt="START" draggable="false" />
+        </button>
+      </div>
     </section>
 
     <!-- GAME -->
     <section class="screen" id="screenGame" aria-label="game">
-      <div class="stage">
+      <div class="stage" id="stage">
         <div class="stage-bg"></div>
 
+        <!-- right top: character drawer button -->
         <button class="icon-btn icon-top-right" id="ghostBtn" aria-label="ghost">
-          👻
+          <img src="./assets/ui/button/charabutton.png" alt="" draggable="false" />
         </button>
 
+        <!-- right bottom: pause/back button -->
         <button class="icon-btn icon-bottom-right" id="menuBtn" aria-label="menu">
-          ×
+          <img src="./assets/ui/button/backbutton.png" alt="" draggable="false" />
         </button>
 
         <!-- right drawer -->
         <aside class="drawer" id="drawer" aria-label="cobake list" hidden>
           <div class="drawer-inner">
-            <p class="drawer-title">COBAKE</p>
             <div class="drawer-items" id="cobakeList"></div>
           </div>
         </aside>
@@ -50,8 +60,7 @@
 
   </main>
 
-<script src="./js/cobake-data.js"></script>
-<script src="./js/app.js"></script>
-
+  <script src="./js/cobake-data.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>
