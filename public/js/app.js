@@ -6,6 +6,7 @@ const screenGame  = document.getElementById("screenGame");
 
 const startBtn     = document.getElementById("startBtn");
 const startPopArea = document.getElementById("startPopArea");
+const startLayer   = document.getElementById("startLayer");
 
 // game ui
 const ghostBtn  = document.getElementById("ghostBtn");
@@ -34,75 +35,7 @@ function goStart(){
 }
 
 // =========================
-// CSS injection (effects)
-// =========================
-(function injectEffectsCss(){
-  const css = `
-    .bk-silhouette{
-      position:absolute;
-      left:0; top:0;
-      transform-origin:center center;
-      pointer-events:none;
-      user-select:none;
-      -webkit-user-drag:none;
-      opacity:.22;
-      filter: brightness(0) saturate(0) blur(.2px);
-    }
-    .bk-silhouette.is-hint{
-      opacity:.34;
-      filter: brightness(0) saturate(0) blur(.1px) drop-shadow(0 0 10px rgba(255,255,255,.85));
-    }
-
-    .piece{
-      transform-origin:center center;
-      will-change: transform;
-    }
-    .piece.is-hint{
-      filter: drop-shadow(0 0 10px rgba(255,255,255,.95));
-    }
-
-    .success-flash{
-      position:absolute;
-      left:0; top:0; right:0; bottom:0;
-      pointer-events:none;
-      border-radius:24px;
-      overflow:hidden;
-    }
-    .success-flash::before{
-      content:"";
-      position:absolute;
-      left:50%;
-      top:50%;
-      width:12px;
-      height:12px;
-      border-radius:999px;
-      transform: translate(-50%,-50%) scale(1);
-      background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,0) 70%);
-      opacity:0;
-    }
-    .success-flash.is-on::before{
-      animation: kiran 520ms ease-out forwards;
-    }
-    @keyframes kiran{
-      0%   { opacity:0; transform: translate(-50%,-50%) scale(.6); }
-      35%  { opacity:1; transform: translate(-50%,-50%) scale(18); }
-      100% { opacity:0; transform: translate(-50%,-50%) scale(28); }
-    }
-  `;
-  const style = document.createElement("style");
-  style.textContent = css;
-  document.head.appendChild(style);
-
-  // stage overlay for flash
-  if (stage && !stage.querySelector(".success-flash")){
-    const flash = document.createElement("div");
-    flash.className = "success-flash";
-    stage.appendChild(flash);
-  }
-})();
-
-// =========================
-// Start animation
+// Helpers
 // =========================
 function shuffle(arr){
   const a = arr.slice();
@@ -113,6 +46,22 @@ function shuffle(arr){
   return a;
 }
 
+function clamp(v, min, max){
+  return Math.max(min, Math.min(max, v));
+}
+
+function getCobakeScale(id){
+  const list = window.COBAKE_DATA || [];
+  const hit = list.find(x => x.id === id);
+  const s = hit && typeof hit.scale === "number" ? hit.scale : 1;
+  return s > 0 ? s : 1;
+}
+
+// =========================
+// Start animation
+// - must stay inside screen
+// - use scale from COBAKE_DATA
+// =========================
 function startSequence(){
   const list = window.COBAKE_DATA || [];
   startPopArea.innerHTML = "";
@@ -123,8 +72,17 @@ function startSequence(){
   const baseDelay = 120; // ms
   const stepDelay = 120; // ms
 
-  const xMin = 10;
-  const xMax = 88;
+  // stage size
+  const r = (startLayer ? startLayer.getBoundingClientRect() : null);
+  const W = r ? r.width : 1024;
+
+  // base width (pipple=1.0) + hard cap so big chars never overflow
+  const baseW = 220;
+  const maxW  = W * 0.42;
+
+  // y positions (keep inside)
+  const bottomMin = 6;   // %
+  const bottomMax = 14;  // %
 
   order.forEach((c, idx) => {
     const img = document.createElement("img");
@@ -133,15 +91,26 @@ function startSequence(){
     img.alt = "";
     img.draggable = false;
 
-    const x = xMin + Math.random() * (xMax - xMin);
-    img.style.left = `${x}%`;
-    img.style.animationDelay = `${baseDelay + stepDelay * idx}ms`;
-
-    // size normalize (pipple scale=1.0 baseline)
-    const baseW = 220; // px (same as CSS start-pop default width)
     const s = (c && typeof c.scale === "number" && c.scale > 0) ? c.scale : 1;
-    img.style.width = `${baseW * s}px`;
+
+    // width clamp
+    const w0 = baseW * s;
+    const w  = Math.min(w0, maxW);
+    img.style.width = `${w}px`;
     img.style.height = "auto";
+
+    // x random but clamped by actual width
+    const xPxMin = 16;
+    const xPxMax = Math.max(xPxMin, W - w - 16);
+    const xPx = clamp(xPxMin + Math.random() * (xPxMax - xPxMin), xPxMin, xPxMax);
+    img.style.left = `${xPx}px`;
+
+    // y random
+    const b = bottomMin + Math.random() * (bottomMax - bottomMin);
+    img.style.bottom = `${b}%`;
+
+    // timing
+    img.style.animationDelay = `${baseDelay + stepDelay * idx}ms`;
 
     startPopArea.appendChild(img);
   });
@@ -185,16 +154,74 @@ function buildCobakeList(){
   });
 }
 
-function getCobakeScale(id){
-  const list = window.COBAKE_DATA || [];
-  const hit = list.find(x => x.id === id);
-  const s = hit && typeof hit.scale === "number" ? hit.scale : 1;
-  return s > 0 ? s : 1;
-}
+// =========================
+// Puzzle (pinch/rotate + silhouette + snap + success)
+// =========================
+(function injectEffectsCss(){
+  const css = `
+    .bk-silhouette{
+      position:absolute;
+      left:0; top:0;
+      transform-origin:center center;
+      pointer-events:none;
+      user-select:none;
+      -webkit-user-drag:none;
+      opacity:.22;
+      filter: brightness(0) saturate(0) blur(.2px);
+    }
+    .bk-silhouette.is-hint{
+      opacity:.36;
+      filter: brightness(0) saturate(0) blur(.1px) drop-shadow(0 0 10px rgba(255,255,255,.85));
+    }
 
-// =========================
-// Puzzle runtime state
-// =========================
+    .piece{
+      transform-origin:center center;
+      will-change: transform;
+    }
+    .piece.is-hint{
+      filter: drop-shadow(0 0 10px rgba(255,255,255,.95));
+    }
+
+    .success-flash{
+      position:absolute;
+      left:0; top:0; right:0; bottom:0;
+      pointer-events:none;
+      border-radius:24px;
+      overflow:hidden;
+      z-index: 5;
+    }
+    .success-flash::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      transform: translate(-50%,-50%) scale(1);
+      background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,0) 70%);
+      opacity:0;
+    }
+    .success-flash.is-on::before{
+      animation: kiran 520ms ease-out forwards;
+    }
+    @keyframes kiran{
+      0%   { opacity:0; transform: translate(-50%,-50%) scale(.6); }
+      35%  { opacity:1; transform: translate(-50%,-50%) scale(18); }
+      100% { opacity:0; transform: translate(-50%,-50%) scale(28); }
+    }
+  `;
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  if (stage && !stage.querySelector(".success-flash")){
+    const flash = document.createElement("div");
+    flash.className = "success-flash";
+    stage.appendChild(flash);
+  }
+})();
+
 const puzzle = {
   id: null,
   pieceEl: null,
@@ -205,34 +232,28 @@ const puzzle = {
   // pose
   x: 0, y: 0, rot: 0, scale: 1,
 
-  // base size used for "display width" (same as previous)
+  // base display width (pipple=1.0)
   baseW: 120,
 
-  // target pose (silhouette pose)
+  // target pose
   target: { x: 0, y: 0, rot: 0, scale: 1 },
 
-  // pointer tracking for pinch/rotate
+  // pointer tracking
   pointers: new Map(),
-  gesture: null // { mode, ...snapshot }
+  gesture: null
 };
+
+function stageRect(){ return stage.getBoundingClientRect(); }
 
 function ensureFlashEl(){
   if (!stage) return null;
-  const el = stage.querySelector(".success-flash");
-  puzzle.flashEl = el || null;
+  puzzle.flashEl = stage.querySelector(".success-flash");
   return puzzle.flashEl;
 }
 
-function stageRect(){
-  return stage.getBoundingClientRect();
-}
-
-function rand(min, max){
-  return min + Math.random() * (max - min);
-}
+function rand(min, max){ return min + Math.random() * (max - min); }
 
 function normalizeAngleRad(a){
-  // normalize to [-PI, PI]
   while (a > Math.PI) a -= Math.PI * 2;
   while (a < -Math.PI) a += Math.PI * 2;
   return a;
@@ -240,13 +261,15 @@ function normalizeAngleRad(a){
 
 function applyPose(){
   if (!puzzle.pieceEl) return;
-  puzzle.pieceEl.style.transform = `translate(${puzzle.x}px, ${puzzle.y}px) rotate(${puzzle.rot}rad) scale(${puzzle.scale})`;
+  puzzle.pieceEl.style.transform =
+    `translate(${puzzle.x}px, ${puzzle.y}px) rotate(${puzzle.rot}rad) scale(${puzzle.scale})`;
 }
 
 function applyTargetPose(){
   if (!puzzle.silhouetteEl) return;
   const t = puzzle.target;
-  puzzle.silhouetteEl.style.transform = `translate(${t.x}px, ${t.y}px) rotate(${t.rot}rad) scale(${t.scale})`;
+  puzzle.silhouetteEl.style.transform =
+    `translate(${t.x}px, ${t.y}px) rotate(${t.rot}rad) scale(${t.scale})`;
 }
 
 function clearHint(){
@@ -266,8 +289,22 @@ function distance(a, b){
   return Math.hypot(dx, dy);
 }
 
+function doVibrate(){
+  try{
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+  }catch(_){}
+}
+
+function doKiran(){
+  const el = ensureFlashEl();
+  if (!el) return;
+  el.classList.remove("is-on");
+  void el.offsetWidth;
+  el.classList.add("is-on");
+  window.setTimeout(() => el.classList.remove("is-on"), 700);
+}
+
 function playKacha(){
-  // no external asset: short click via WebAudio
   try{
     const ac = new (window.AudioContext || window.webkitAudioContext)();
     const o = ac.createOscillator();
@@ -289,28 +326,11 @@ function playKacha(){
   }catch(_){}
 }
 
-function doVibrate(){
-  try{
-    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
-  }catch(_){}
-}
-
-function doKiran(){
-  const el = ensureFlashEl();
-  if (!el) return;
-  el.classList.remove("is-on");
-  // force reflow
-  void el.offsetWidth;
-  el.classList.add("is-on");
-  window.setTimeout(() => el.classList.remove("is-on"), 700);
-}
-
 function swapToColor(){
   if (!puzzle.pieceEl || !puzzle.id) return;
   const colorSrc = `./assets/img/cobake/monokuro/color/${puzzle.id}.png`;
   const img = new Image();
   img.onload = () => { if (puzzle.pieceEl) puzzle.pieceEl.src = colorSrc; };
-  img.onerror = () => { /* keep monokuro if missing */ };
   img.src = colorSrc;
 }
 
@@ -321,7 +341,6 @@ function checkSnap(){
   const t = puzzle.target;
   const p = { x: puzzle.x, y: puzzle.y };
 
-  // loose thresholds
   const posOK   = distance(p, t) <= 18;
   const rotOK   = Math.abs(normalizeAngleRad(puzzle.rot - t.rot)) <= (10 * Math.PI / 180);
   const scaleOK = Math.abs(puzzle.scale - t.scale) <= 0.08;
@@ -331,7 +350,6 @@ function checkSnap(){
 
   if (!near) return;
 
-  // snap
   puzzle.x = t.x;
   puzzle.y = t.y;
   puzzle.rot = t.rot;
@@ -339,35 +357,27 @@ function checkSnap(){
   applyPose();
 
   puzzle.solved = true;
-
-  // success effects
   clearHint();
+
   doKiran();
   playKacha();
   doVibrate();
   swapToColor();
 
-  // hide silhouette after a beat
   window.setTimeout(() => {
     if (puzzle.silhouetteEl) puzzle.silhouetteEl.style.opacity = "0";
   }, 220);
 }
 
 function setRandomTargetPose(){
-  if (!stage) return;
-
   const r = stageRect();
   const margin = 40;
 
-  // target scale equals current scale baseline (normalized by data)
-  const s = getCobakeScale(puzzle.id);
-
-  // random rotation range
   const rot = rand(-18, 18) * Math.PI / 180;
-
-  // random position within stage
   const x = rand(margin, r.width - margin);
   const y = rand(margin, r.height - margin);
+
+  const s = getCobakeScale(puzzle.id);
 
   puzzle.target = { x, y, rot, scale: s };
   applyTargetPose();
@@ -379,38 +389,35 @@ function spawnPiece(id){
   puzzle.pointers.clear();
   puzzle.gesture = null;
 
-  // remove old
   const oldPiece = stage.querySelector(".piece");
   if (oldPiece) oldPiece.remove();
   const oldBk = stage.querySelector(".bk-silhouette");
   if (oldBk) oldBk.remove();
 
-  const scale = getCobakeScale(id);
+  const s = getCobakeScale(id);
 
-  // silhouette (bk)
   const bk = document.createElement("img");
   bk.className = "bk-silhouette";
   bk.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
   bk.alt = "";
   bk.draggable = false;
 
-  // piece (front)
   const img = document.createElement("img");
   img.className = "piece";
   img.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
   img.alt = id;
   img.draggable = false;
 
-  // base display sizes
-  const baseW = puzzle.baseW;
-  img.style.width = `${baseW * scale}px`;
+  // ensure correct aspect
   img.style.height = "auto";
-
-  bk.style.width = `${baseW * scale}px`;
   bk.style.height = "auto";
 
-  // place in stage (bk under piece)
-  // stage-bg is first child; insert bk after it so it sits above bg but below UI/piece
+  // base display widths
+  const baseW = puzzle.baseW;
+  img.style.width = `${baseW * s}px`;
+  bk.style.width  = `${baseW * s}px`;
+
+  // insert silhouette under piece
   const bg = stage.querySelector(".stage-bg");
   if (bg && bg.parentNode === stage) stage.insertBefore(bk, bg.nextSibling);
   else stage.appendChild(bk);
@@ -420,15 +427,14 @@ function spawnPiece(id){
   puzzle.pieceEl = img;
   puzzle.silhouetteEl = bk;
 
-  // initial pose (center-ish)
-  puzzle.x = stageRect().width * 0.5;
-  puzzle.y = stageRect().height * 0.55;
+  // initial pose
+  const r = stageRect();
+  puzzle.x = r.width * 0.5;
+  puzzle.y = r.height * 0.60;
   puzzle.rot = 0;
-  puzzle.scale = scale;
-
+  puzzle.scale = s;
   applyPose();
 
-  // random target pose
   setRandomTargetPose();
   clearHint();
 }
@@ -498,7 +504,6 @@ document.addEventListener("click", () => {
     const p = ptFromEvent(e);
     puzzle.pointers.set(e.pointerId, p);
 
-    // snapshot
     if (puzzle.pointers.size === 1){
       puzzle.gesture = {
         mode: "drag",
@@ -507,7 +512,10 @@ document.addEventListener("click", () => {
         startY: puzzle.y
       };
       puzzle.pieceEl.classList.add("is-dragging");
-    }else if (puzzle.pointers.size === 2){
+      return;
+    }
+
+    if (puzzle.pointers.size === 2){
       const arr = Array.from(puzzle.pointers.values());
       const a = arr[0], b = arr[1];
       const c = centerOfTwo(a, b);
@@ -564,12 +572,11 @@ document.addEventListener("click", () => {
 
       puzzle.x = g.startX + centerDx;
       puzzle.y = g.startY + centerDy;
-      puzzle.scale = Math.max(0.2, Math.min(3.0, scale));
+      puzzle.scale = clamp(scale, 0.2, 3.0);
       puzzle.rot = rot;
 
       applyPose();
       checkSnap();
-      return;
     }
   });
 
@@ -585,7 +592,6 @@ document.addEventListener("click", () => {
       return;
     }
 
-    // if one pointer remains, switch to drag snapshot
     if (puzzle.pointers.size === 1){
       const remain = Array.from(puzzle.pointers.values())[0];
       puzzle.gesture = {
