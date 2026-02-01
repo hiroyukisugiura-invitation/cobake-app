@@ -65,10 +65,9 @@ function getScaleFromData(id){
 }
 
 /**
- * START画面：出現「枠（位置）」は維持しつつ、
- * 配置するコバケを毎回ランダムに入れ替える。
- * - STARTボタン中心付近（画面中央）は避ける（枠で担保）
- * - 画面外に出ない（clamp）
+ * START画面：
+ * - 配置「枠」は維持しつつ、表示コバケを毎回ランダムに入れ替える
+ * - フッター（下端）に被らないように、全キャラを一定量（8%）持ち上げる
  */
 const START_LAYOUT = [
   { cx: 0.20, bottom: 0.01, z: 10 },
@@ -103,6 +102,10 @@ function startSequence(){
 
   // 画面外防止（巨大スケールでも最大この幅まで）
   const maxW = W * 0.60;
+
+  // フッター被り防止：全体を8%持ち上げ（CSS既定 bottom:8% と同じ）
+  const baseBottom = 0.08;
+  const minBottom  = 0.06;
 
   // ids を毎回ランダム化（表示が固定化しないように）
   const ids = list.map(c => c.id);
@@ -140,8 +143,9 @@ function startSequence(){
     const left = clamp((W * slot.cx) - (w / 2), 0, Math.max(0, W - w));
     img.style.left = `${left}px`;
 
-    // position (bottom)
-    img.style.bottom = `${slot.bottom * 100}%`;
+    // position (bottom) : baseBottom + slot.bottom（下端のフッターに被らない）
+    const b = Math.max(minBottom, baseBottom + (slot.bottom || 0));
+    img.style.bottom = `${b * 100}%`;
 
     // layering
     img.style.zIndex = String(slot.z || 5);
