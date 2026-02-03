@@ -132,10 +132,8 @@ function startSequence(){
     img.alt = "";
     img.draggable = false;
 
-    // size
-    const s = getScaleFromData(c.id);
-    const w0 = baseW * s;
-    const w  = Math.min(w0, maxW);
+    // size（全キャラ固定サイズ）
+    const w = Math.min(baseW, maxW);
     img.style.width = `${w}px`;
     img.style.height = "auto";
 
