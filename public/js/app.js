@@ -19,17 +19,36 @@ const quitBtn   = document.getElementById("quitBtn");
 const cobakeList = document.getElementById("cobakeList");
 const stage      = document.getElementById("stage");
 
-function show(el){ el.hidden = false; }
-function hide(el){ el.hidden = true; }
+// dokokana
+const dokokanaBtn = document.getElementById("dokokanaBtn");
+
+function show(el){
+  if (!el) return;
+  el.hidden = false;
+}
+function hide(el){
+  if (!el) return;
+  el.hidden = true;
+}
 
 function goGame(){
   screenStart.classList.remove("is-active");
   screenGame.classList.add("is-active");
+
+  // game ui reset
+  hide(drawer);
+  hide(popup);
+
+  // dokokana button: fade-in timing
+  hide(dokokanaBtn);
+  window.setTimeout(() => show(dokokanaBtn), 420);
 }
 
 function goStart(){
   hide(drawer);
   hide(popup);
+  hide(dokokanaBtn);
+
   screenGame.classList.remove("is-active");
   screenStart.classList.add("is-active");
 }
@@ -167,6 +186,14 @@ startBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   goGame();
 });
+
+if (dokokanaBtn){
+  dokokanaBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    hide(dokokanaBtn);
+  });
+}
 
 // =========================
 // Drawer list (monokuro)
