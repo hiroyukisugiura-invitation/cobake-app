@@ -19,7 +19,7 @@
     <section class="screen is-active" id="screenStart" aria-label="start">
       <div class="start-layer" id="startLayer">
         <!-- base -->
-        <img class="start-bg" src="./assets/img/cobake/monokuro/ui/start_ui.png" alt="COBAKE Puzzle" />
+        <img class="start-bg" src="./assets/img/cobake/monokuro/ui/main_ui.png" alt="COBAKE Puzzle" />
 
         <!-- popping cobakes (JS will inject) -->
         <div class="start-pop-area" id="startPopArea" aria-hidden="true"></div>
@@ -49,9 +49,14 @@
     </section>
 
     <!-- GAME -->
-    <section class="screen" id="screenGame" aria-label="game">
-      <div class="stage" id="stage">
-        <div class="stage-bg"></div>
+      <section class="screen" id="screenGame" aria-label="game">
+        <div class="stage" id="stage">
+          <div class="stage-bg"></div>
+
+          <!-- dokokana button (hidden at first) -->
+          <button class="dokokana-btn" id="dokokanaBtn" hidden aria-label="コバケどこかな？">
+            <img src="./assets/img/cobake/monokuro/ui/dokokana_button.png" alt="コバケどこかな？" draggable="false" />
+          </button>
 
         <!-- right top: character drawer button -->
         <button class="icon-btn icon-top-right" id="ghostBtn" aria-label="ghost">
