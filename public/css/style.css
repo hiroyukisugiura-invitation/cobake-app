@@ -75,8 +75,8 @@ body{
 
 .start-ghost{
   position:absolute;
-  left: 62%;
-  top: 10%;
+  left: 56%;
+  top: 8%;
   width: 86px;
   height:auto;
   pointer-events:none;
@@ -92,7 +92,7 @@ body{
 .start-btn{
   position:absolute;
   left:50%;
-  top:56.5%;
+  top:50.5%;
   transform: translate(-50%, -50%);
   border:0;
   background:transparent;
@@ -103,7 +103,7 @@ body{
 }
 
 .start-btn img{
-  width: 260px;
+  width: 180px;
   height:auto;
   display:block;
 }
@@ -115,8 +115,8 @@ body{
 
 .legal-icons{
   position:absolute;
-  right: 24px;
-  bottom: 10px;
+  right: 70px;
+  bottom: 50px;
   display:flex;
   gap: 14px;
   z-index: 80;
