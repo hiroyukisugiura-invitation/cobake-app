@@ -147,8 +147,9 @@ function startSequence(){
     const b = Math.max(minBottom, baseBottom + (slot.bottom || 0));
     img.style.bottom = `${b * 100}%`;
 
-    // layering
-    img.style.zIndex = String(slot.z || 5);
+    // layering（STARTボタンより必ず背面にする）
+    const z = slot.z || 5;
+    img.style.zIndex = String(Math.min(z, 50));
 
     // timing
     img.style.animationDelay = `${baseDelay + stepDelay * idx}ms`;
