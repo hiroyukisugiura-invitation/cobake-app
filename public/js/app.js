@@ -32,8 +32,14 @@ function hide(el){
 }
 
 function goGame(){
+  // START → GAME
   screenStart.classList.remove("is-active");
   screenGame.classList.add("is-active");
+
+  // 念のため START側UIを初期化
+  hide(startBtn);
+  startPopArea.innerHTML = "";
+}
 
   // game ui reset
   hide(drawer);
@@ -47,10 +53,12 @@ function goGame(){
 function goStart(){
   hide(drawer);
   hide(popup);
-  hide(dokokanaBtn);
 
   screenGame.classList.remove("is-active");
   screenStart.classList.add("is-active");
+
+  // START演出を再生成
+  startSequence();
 }
 
 // =========================
