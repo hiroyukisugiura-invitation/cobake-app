@@ -157,7 +157,27 @@ body{
 .stage-bg{
   position:absolute;
   inset:0;
-  background:#baf7b8;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  z-index: 0;
+}
+
+/* silhouette layer */
+.silhouette-layer{
+  position:absolute;
+  inset:0;
+  z-index: 80;
+  pointer-events:none;
+}
+
+.silhouette{
+  position:absolute;
+  width: 120px;
+  height:auto;
+  opacity: 0.85;
+  filter: brightness(0) saturate(100%);
 }
 
 /* icon buttons (prevents giant images) */
