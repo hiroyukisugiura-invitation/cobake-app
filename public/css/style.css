@@ -383,22 +383,73 @@ body{
    - sizes stay stable by data-id
 */
 
-/* base (fallback) */
+/* ベース（何も指定しないキャラ用） */
 .cobake-item[data-id] .thumb-img{
-  width: 100%;
-  height: 100%;
+  width: 72px;
+  height: auto;
   object-fit: contain;
 }
 
-/* === EDIT THESE VALUES === */
-.cobake-item[data-id="well"]  .thumb-img{ width: 80px; height: auto; }
-.cobake-item[data-id="fuuu"]  .thumb-img{ width: 40px; height: auto; }
-.cobake-item[data-id="vazuu"] .thumb-img{ width: 50px; height: auto; }
-.cobake-item[data-id="monja"] .thumb-img{ width: 88px; height: auto; }
-.cobake-item[data-id="pipple"] .thumb-img{ width: 65px; height: auto; }
-.cobake-item[data-id="ruru"]  .thumb-img{ width: 46px; height: auto; }
-.cobake-item[data-id="coin"]  .thumb-img{ width: 40px; height: auto; }
-.cobake-item[data-id="wonka"] .thumb-img{ width: 70px; height: auto; }
-.cobake-item[data-id="coron"] .thumb-img{ width: 62px; height: auto; }
-.cobake-item[data-id="musshu"] .thumb-img{ width: 60px; height: auto; }
+/* 個別サイズ（あなたが自由に編集） */
+.cobake-item[data-id="well"]   .thumb-img{ width: 80px; }
+.cobake-item[data-id="fuuu"]   .thumb-img{ width: 40px; }
+.cobake-item[data-id="vazuu"]  .thumb-img{ width: 50px; }
+.cobake-item[data-id="monja"]  .thumb-img{ width: 88px; }
+.cobake-item[data-id="pipple"] .thumb-img{ width: 65px; }
+.cobake-item[data-id="ruru"]   .thumb-img{ width: 46px; }
+.cobake-item[data-id="coin"]   .thumb-img{ width: 40px; }
+.cobake-item[data-id="wonka"]  .thumb-img{ width: 70px; }
+.cobake-item[data-id="coron"]  .thumb-img{ width: 62px; }
+.cobake-item[data-id="musshu"] .thumb-img{ width: 60px; }
 
+/* =========================
+   MENU POPUP (kyuukei / yameru)
+   ========================= */
+.popup{
+  position: absolute;
+  right: 53px;
+  bottom: 108px;
+
+  width: 180px;
+  padding: 14px 12px;
+
+  background: #ffffff;
+  border-radius: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  box-shadow: 0 10px 26px rgba(0,0,0,.22);
+  z-index: 300;
+}
+
+.popup[hidden]{
+  display: none;
+}
+
+.popup-item{
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.popup-item[hidden]{
+  display:none !important;
+}
+
+.popup-item img{
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.popup-item:active{
+  transform: translateY(1px);
+}

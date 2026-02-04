@@ -15,16 +15,17 @@
 <body>
   <main class="app" id="app">
 
-        <!-- START -->
-        <section class="screen is-active" id="screenStart" aria-label="start">
-          <div class="start-layer" id="startLayer">
-            <!-- base (START only) -->
-            <img
-              class="start-bg"
-              id="startBg"
-              src="./assets/img/cobake/monokuro/ui/start_ui.png"
-              alt="COBAKE Start"
-            />
+    <!-- START -->
+    <section class="screen is-active" id="screenStart" aria-label="start">
+      <div class="start-layer" id="startLayer">
+
+        <!-- base (START only) -->
+        <img
+          class="start-bg"
+          id="startBg"
+          src="./assets/img/cobake/monokuro/ui/start_ui.png"
+          alt="COBAKE Start"
+        />
 
         <!-- popping cobakes (JS will inject) -->
         <div class="start-pop-area" id="startPopArea" aria-hidden="true"></div>
@@ -53,16 +54,17 @@
       </div>
     </section>
 
-        <!-- GAME -->
-          <section class="screen" id="screenGame" aria-label="game">
-            <div class="stage" id="stage">
-              <!-- base (GAME only) -->
-              <img
-                class="stage-bg"
-                id="gameBg"
-                src="./assets/img/cobake/monokuro/ui/main_ui.png"
-                alt="COBAKE Game"
-              />
+    <!-- GAME -->
+    <section class="screen" id="screenGame" aria-label="game">
+      <div class="stage" id="stage">
+
+        <!-- base (GAME only) -->
+        <img
+          class="stage-bg"
+          id="gameBg"
+          src="./assets/img/cobake/monokuro/ui/main_ui.png"
+          alt="COBAKE Game"
+        />
 
         <!-- dokokana button (hidden at first) -->
         <button class="dokokana-btn" id="dokokanaBtn" hidden aria-label="コバケどこかな？">
@@ -88,8 +90,14 @@
 
         <!-- menu popup -->
         <div class="popup" id="popup" hidden>
-          <button class="popup-item" id="resumeBtn">きゅうけい</button>
-          <button class="popup-item" id="quitBtn">やめる</button>
+          <!-- きゅうけい：不要だがJS参照があるためDOMは残し、常時非表示 -->
+          <button class="popup-item" id="resumeBtn" type="button" aria-label="きゅうけい" hidden>
+            <img src="./button/kyuukei.png" alt="きゅうけい" draggable="false" />
+          </button>
+
+          <button class="popup-item" id="quitBtn" type="button" aria-label="やめる">
+            <img src="./button/yameru.png" alt="やめる" draggable="false" />
+          </button>
         </div>
 
       </div>
