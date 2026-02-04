@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>特定商取引法に基づく表記 | COBAKE</title>
+
+  <style>
+    html,body{
+      margin:0;
+      padding:0;
+      background:#0f1113;
+      color:#ffffff;
+      font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    }
+    .wrapper{
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    h1{
+      font-size: 22px;
+      margin: 0 0 24px;
+      border-bottom: 1px solid rgba(255,255,255,.15);
+      padding-bottom: 12px;
+    }
+    section{
+      margin-bottom: 24px;
+    }
+    p{
+      line-height: 1.7;
+      font-size: 14px;
+      margin: 6px 0;
+      white-space: pre-wrap;
+    }
+    .label{
+      font-weight: 600;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>特定商取引法に基づく表記</h1>
+
+    <section>
+      <p class="label">製品名</p>
+      <p>COBAKE（コバケ）</p>
+
+      <p class="label">事業者名</p>
+      <p>COBAKE Studio</p>
+
+      <p class="label">運営責任者</p>
+      <p>※開示請求があった場合に遅滞なく開示します</p>
+
+      <p class="label">所在地</p>
+      <p>※開示請求があった場合に遅滞なく開示します</p>
+
+      <p class="label">お問い合わせ先</p>
+      <p>support@cobake.app
+※お問い合わせは原則メールにて対応いたします</p>
+
+      <p class="label">販売価格</p>
+      <p>アプリ内に表示される各プランの金額（税込）</p>
+
+      <p class="label">商品代金以外の必要料金</p>
+      <p>インターネット接続に必要な通信料（利用者負担）</p>
+
+      <p class="label">支払方法</p>
+      <p>Apple ID 決済 / Google アカウント決済</p>
+
+      <p class="label">支払時期</p>
+      <p>各プラットフォームの規定に準じます</p>
+
+      <p class="label">商品の引き渡し時期</p>
+      <p>決済完了後、直ちに利用可能</p>
+
+      <p class="label">返品・キャンセル</p>
+      <p>デジタルコンテンツの性質上、返品・返金はできません</p>
+    </section>
+  </div>
+</body>
+</html>

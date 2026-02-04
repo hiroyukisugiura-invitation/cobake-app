@@ -660,39 +660,51 @@ document.addEventListener("click", () => {
 
   stage.addEventListener("pointerdown", (e) => {
     const t = e.target;
-    if (!(t instanceof HTMLElement)) return;
-    if (!t.classList.contains("piece")) return;
+
+    const hitPiece =
+      (t instanceof HTMLElement) &&
+      t.classList.contains("piece");
+
+    // 1本目：piece上のみ開始
+    // 2本目以降：activeEl があれば stage 上でも拾う（画像外に指が出てもピンチ/回転成立）
+    if (!hitPiece && !activeEl) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    activeEl = t;
-    activeEl.setPointerCapture(e.pointerId);
+    if (hitPiece) activeEl = t;
 
-    // double tap (touch/pen)
-    const now = Date.now();
-    const prev = lastTap.get(activeEl);
-    if (prev && (now - prev.t) < 320){
-      const dx = e.clientX - prev.x;
-      const dy = e.clientY - prev.y;
-      if ((dx*dx + dy*dy) < (18*18)){
-        activeEl.remove();
-        lastTap.delete(activeEl);
-        activeEl = null;
-        pts.clear();
-        return;
-      }
+    if (activeEl && activeEl.setPointerCapture){
+      activeEl.setPointerCapture(e.pointerId);
     }
-    lastTap.set(activeEl, { t: now, x: e.clientX, y: e.clientY });
+
+    // piece をタップしたときのみ、ダブルタップ判定・ドラッグ基準を更新
+    if (hitPiece){
+      // double tap (touch/pen)
+      const now = Date.now();
+      const prev = lastTap.get(activeEl);
+      if (prev && (now - prev.t) < 320){
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
+        if ((dx*dx + dy*dy) < (18*18)){
+          activeEl.remove();
+          lastTap.delete(activeEl);
+          activeEl = null;
+          pts.clear();
+          return;
+        }
+      }
+      lastTap.set(activeEl, { t: now, x: e.clientX, y: e.clientY });
+
+      // prepare drag offset for 1-finger move
+      const p = localXY(e.clientX, e.clientY);
+      const curLeft = Number.parseFloat(activeEl.style.left) || p.x;
+      const curTop  = Number.parseFloat(activeEl.style.top)  || p.y;
+      dragOffset = { dx: curLeft - p.x, dy: curTop - p.y };
+    }
 
     // register pointer
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // prepare drag offset for 1-finger move
-    const p = localXY(e.clientX, e.clientY);
-    const curLeft = Number.parseFloat(activeEl.style.left) || p.x;
-    const curTop  = Number.parseFloat(activeEl.style.top)  || p.y;
-    dragOffset = { dx: curLeft - p.x, dy: curTop - p.y };
 
     // prepare pinch/rotate baseline if 2 pointers
     if (pts.size === 2){
