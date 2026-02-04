@@ -31,6 +31,49 @@ function hide(el){
   el.hidden = true;
 }
 
+function buildGameSilhouettes(){
+  if (!stage) return;
+
+  // 既存シルエットを掃除
+  const old = stage.querySelector(".silhouette-layer");
+  if (old) old.remove();
+
+  const layer = document.createElement("div");
+  layer.className = "silhouette-layer";
+  stage.appendChild(layer);
+
+  const list = window.COBAKE_DATA || [];
+  const ids = list.map(c => c.id);
+
+  // 10体程度をランダム表示（毎回変わる）
+  const pickCount = Math.min(10, ids.length);
+  for (let i = ids.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  const picked = ids.slice(0, pickCount);
+
+  picked.forEach((id) => {
+    const img = document.createElement("img");
+    img.className = "silhouette";
+    img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
+    img.alt = "";
+    img.draggable = false;
+
+    // ざっくり配置（画面内）
+    const left = 6 + Math.random() * 78; // %
+    const top  = 10 + Math.random() * 72; // %
+    const s    = 0.55 + Math.random() * 0.75; // scale
+    const r    = -18 + Math.random() * 36; // deg
+
+    img.style.left = `${left}%`;
+    img.style.top  = `${top}%`;
+    img.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+
+    layer.appendChild(img);
+  });
+}
+
 function goGame(){
   // START → GAME
   screenStart.classList.remove("is-active");
@@ -40,11 +83,18 @@ function goGame(){
   hide(startBtn);
   startPopArea.innerHTML = "";
 
-  // game ui reset
+  // game ui reset（初期は触れない状態）
   hide(drawer);
   hide(popup);
 
-  // dokokana button: fade-in timing
+  // 右上オバケ/右下× は「dokokana後」に出す
+  if (ghostBtn) ghostBtn.hidden = true;
+  if (menuBtn)  menuBtn.hidden  = true;
+
+  // スクショ3（シルエット表示）
+  buildGameSilhouettes();
+
+  // スクショ4（dokokanaボタンをフワっと表示）
   hide(dokokanaBtn);
   window.setTimeout(() => show(dokokanaBtn), 420);
 }
@@ -52,6 +102,11 @@ function goGame(){
 function goStart(){
   hide(drawer);
   hide(popup);
+  hide(dokokanaBtn);
+
+  // シルエット掃除
+  const layer = stage ? stage.querySelector(".silhouette-layer") : null;
+  if (layer) layer.remove();
 
   screenGame.classList.remove("is-active");
   screenStart.classList.add("is-active");
@@ -198,7 +253,11 @@ if (dokokanaBtn){
   dokokanaBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // スクショ5：ボタンを消して、操作UIを出す
     hide(dokokanaBtn);
+    if (ghostBtn) ghostBtn.hidden = false;
+    if (menuBtn)  menuBtn.hidden  = false;
   });
 }
 
