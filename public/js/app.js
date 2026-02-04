@@ -34,7 +34,7 @@ function hide(el){
 function buildGameSilhouettes(){
   if (!stage) return;
 
-  // 既存シルエットを掃除
+  // 掃除
   const old = stage.querySelector(".silhouette-layer");
   if (old) old.remove();
 
@@ -46,180 +46,168 @@ function buildGameSilhouettes(){
   const W = rect.width;
   const H = rect.height;
 
-  // 深緑枠に被らない安全マージン（永久に枠外NG）
-  const mLeft   = Math.round(W * 0.07);
-  const mRight  = Math.round(W * 0.07);
-  const mTop    = Math.round(H * 0.08);
-  const mBottom = Math.round(H * 0.08);
+  // 深緑枠内の安全マージン（永久に枠外NG）
+  const mLeft   = Math.round(W * 0.08);
+  const mRight  = Math.round(W * 0.08);
+  const mTop    = Math.round(H * 0.10);
+  const mBottom = Math.round(H * 0.10);
 
+  const safeW = W - mLeft - mRight;
+  const safeH = H - mTop - mBottom;
+
+  // ===== 被りゼロを保証する：セル占有グリッド =====
+  // 4列×5行 = 20セル（10体でも余裕）
+  const COLS = 4;
+  const ROWS = 5;
+
+  const cellW = safeW / COLS;
+  const cellH = safeH / ROWS;
+
+  // 置き方（セルspan）。大→中→小
+  // ※どのspanでもセル矩形内に収まるので枠外ゼロ
+  const SHAPES = [
+    { cw: 2, ch: 2 }, // 大
+    { cw: 2, ch: 1 }, // 横長
+    { cw: 1, ch: 2 }, // 縦長
+    { cw: 1, ch: 1 }  // 小
+  ];
+
+  // 10体の構成（密度感：大/中/小）
+  // 例：大2・中4・小4（合計10）
+  const TARGET = [
+    { cw: 2, ch: 2 }, { cw: 2, ch: 2 },
+    { cw: 2, ch: 1 }, { cw: 2, ch: 1 },
+    { cw: 1, ch: 2 }, { cw: 1, ch: 2 },
+    { cw: 1, ch: 1 }, { cw: 1, ch: 1 }, { cw: 1, ch: 1 }, { cw: 1, ch: 1 }
+  ];
+
+  // IDs をランダム
   const list = window.COBAKE_DATA || [];
   const ids = list.map(c => c.id);
-
-  // 10体固定（足りなければあるだけ）
-  const pickCount = Math.min(10, ids.length);
-
-  // ids を毎回ランダム化
   for (let i = ids.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
-  const picked = ids.slice(0, pickCount);
 
-  // 密度：大→小（10体想定）
-  const tiers = [];
-  const pushMany = (ratio, n) => { for (let i=0;i<n;i++) tiers.push(ratio); };
+  const count = Math.min(10, ids.length);
 
-  if (pickCount >= 10){
-    pushMany(0.40, 2);
-    pushMany(0.30, 3);
-    pushMany(0.22, 3);
-    pushMany(0.16, 2);
-  } else {
-    pushMany(0.38, Math.max(1, Math.floor(pickCount * 0.2)));
-    pushMany(0.28, Math.max(1, Math.floor(pickCount * 0.3)));
-    pushMany(0.20, Math.max(1, Math.floor(pickCount * 0.3)));
-    while (tiers.length < pickCount) tiers.push(0.16);
-    tiers.length = pickCount;
+  // occupancy
+  const occ = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+  function canPlace(r, c, cw, ch){
+    if (r + ch > ROWS) return false;
+    if (c + cw > COLS) return false;
+    for (let rr = r; rr < r + ch; rr++){
+      for (let cc = c; cc < c + cw; cc++){
+        if (occ[rr][cc]) return false;
+      }
+    }
+    return true;
   }
 
-  // 画像比率を取得
-  const loadOne = (id) => new Promise((resolve) => {
-    const src = `./assets/img/cobake/monokuro/bk/${id}.png`;
-    const im = new Image();
-    im.onload = () => {
-      const ratio = (im.naturalWidth > 0) ? (im.naturalHeight / im.naturalWidth) : 1.2;
-      resolve({ id, src, ratio });
-    };
-    im.onerror = () => resolve({ id, src, ratio: 1.2 });
-    im.src = src;
-  });
+  function markPlace(r, c, cw, ch){
+    for (let rr = r; rr < r + ch; rr++){
+      for (let cc = c; cc < c + cw; cc++){
+        occ[rr][cc] = true;
+      }
+    }
+  }
 
-  // 0/90/180/270 のみ（回転しても枠外NGを満たすため）
+  // 0/90/180/270
   const rots = [0, 90, 180, 270];
   const pickRot = () => rots[Math.floor(Math.random() * rots.length)];
 
-  Promise.all(picked.map(loadOne)).then((loaded) => {
-    // 大きい順に配置
-    const order = loaded.map((o, i) => ({ ...o, baseRatio: tiers[i] }))
-      .sort((a,b) => b.baseRatio - a.baseRatio);
+  // 置く順番：大から（詰めやすい）
+  const want = TARGET.slice(0, count);
 
-    // 被り判定（トップ左基準のAABB）
-    const placed = [];
-    const pad = Math.round(Math.min(W, H) * 0.012); // 余白
+  for (let i = 0; i < want.length; i++){
+    const id = ids[i];
+    const shape = want[i];
 
-    function intersects(a, b){
-      return !(
-        a.x2 <= b.x1 || b.x2 <= a.x1 ||
-        a.y2 <= b.y1 || b.y2 <= a.y1
-      );
+    // 候補セルをランダムに探索
+    const candidates = [];
+    for (let r = 0; r < ROWS; r++){
+      for (let c = 0; c < COLS; c++){
+        if (canPlace(r, c, shape.cw, shape.ch)) candidates.push({ r, c });
+      }
     }
 
-    order.forEach(({ src, ratio, baseRatio }, idx) => {
-      // 回転を先に決める（90/270は w/h が入れ替わる）
-      const rot = pickRot();
+    // 置けない場合は形を小さくする（枠外/被りゼロを維持）
+    let finalShape = shape;
+    let pick = null;
 
-      // サイズ（開始ごとに少し揺らす）
-      const jitter = 0.92 + Math.random() * 0.20;
+    function shuffle(arr){
+      for (let k = arr.length - 1; k > 0; k--){
+        const j = Math.floor(Math.random() * (k + 1));
+        [arr[k], arr[j]] = [arr[j], arr[k]];
+      }
+    }
 
-      // まず「非回転の幅」を決める
-      let iw = Math.round(W * baseRatio * jitter);
-      let ih = Math.round(iw * ratio);
+    shuffle(candidates);
 
-      // 表示ボックス（回転後の当たり判定サイズ）
-      let bw = (rot === 90 || rot === 270) ? ih : iw;
-      let bh = (rot === 90 || rot === 270) ? iw : ih;
-
-      // 枠内に必ず収まる上限でクリップ
-      const maxBW = Math.max(24, (W - mLeft - mRight));
-      const maxBH = Math.max(24, (H - mTop - mBottom));
-
-      // 大きすぎる場合は縮小（比率維持）
-      const s1 = Math.min(1, maxBW / bw);
-      const s2 = Math.min(1, maxBH / bh);
-      const sCap = Math.min(s1, s2);
-
-      iw = Math.max(24, Math.round(iw * sCap));
-      ih = Math.max(24, Math.round(ih * sCap));
-      bw = (rot === 90 || rot === 270) ? ih : iw;
-      bh = (rot === 90 || rot === 270) ? iw : ih;
-
-      // 置けるまで試行（縮小しながら、必ず枠内）
-      let ok = false;
-      let x = 0, y = 0;
-
-      for (let pass = 0; pass < 6 && !ok; pass++){
-        const shrink = 1 - pass * 0.10; // 1.0→0.5
-        const bww = Math.max(24, Math.round(bw * shrink));
-        const bhh = Math.max(24, Math.round(bh * shrink));
-
-        const xMin = mLeft;
-        const xMax = Math.max(xMin, W - mRight - bww);
-        const yMin = mTop;
-        const yMax = Math.max(yMin, H - mBottom - bhh);
-
-        for (let t = 0; t < 900; t++){
-          x = Math.round(xMin + Math.random() * (xMax - xMin));
-          y = Math.round(yMin + Math.random() * (yMax - yMin));
-
-          const cand = { x1: x - pad, y1: y - pad, x2: x + bww + pad, y2: y + bhh + pad };
-
-          let hit = false;
-          for (const p of placed){
-            if (intersects(cand, p)){ hit = true; break; }
-          }
-          if (!hit){
-            placed.push(cand);
-            // 確定サイズをここで採用
-            bw = bww;
-            bh = bhh;
-            ok = true;
-            break;
+    if (candidates.length > 0){
+      pick = candidates[0];
+    } else {
+      // fallback: 置ける形を探す
+      const fallbackShapes = SHAPES.slice().sort((a,b) => (a.cw*a.ch) - (b.cw*b.ch));
+      for (const fs of fallbackShapes){
+        const cand2 = [];
+        for (let r = 0; r < ROWS; r++){
+          for (let c = 0; c < COLS; c++){
+            if (canPlace(r, c, fs.cw, fs.ch)) cand2.push({ r, c });
           }
         }
+        shuffle(cand2);
+        if (cand2.length){
+          finalShape = fs;
+          pick = cand2[0];
+          break;
+        }
       }
+    }
 
-      // 最終フォールバック（それでも置けない場合：最小で縦に並べる）
-      if (!ok){
-        bw = Math.min(bw, Math.max(24, Math.round(W * 0.14)));
-        bh = Math.min(bh, Math.max(24, Math.round(H * 0.18)));
-        x = mLeft;
-        y = Math.min(H - mBottom - bh, mTop + idx * Math.round(bh * 0.55));
-      }
+    if (!pick){
+      // ここに来る場合は ROWS/COLS を増やす必要があるが、現設定では到達しない想定
+      continue;
+    }
 
-      // ボックス（枠内保証）
-      const box = document.createElement("div");
-      box.className = "silhouette-box";
-      box.style.position = "absolute";
-      box.style.left = `${x}px`;
-      box.style.top = `${y}px`;
-      box.style.width = `${bw}px`;
-      box.style.height = `${bh}px`;
-      box.style.pointerEvents = "none";
-      box.style.zIndex = "80";
+    markPlace(pick.r, pick.c, finalShape.cw, finalShape.ch);
 
-      // 画像（ボックス中央に置いて回転）
-      const img = document.createElement("img");
-      img.className = "silhouette";
-      img.src = src;
-      img.alt = "";
-      img.draggable = false;
-      img.style.position = "absolute";
-      img.style.left = "50%";
-      img.style.top = "50%";
+    // セル矩形（枠内100%保証）
+    const x = mLeft + pick.c * cellW;
+    const y = mTop + pick.r * cellH;
+    const bw = finalShape.cw * cellW;
+    const bh = finalShape.ch * cellH;
 
-      // 画像は回転前のサイズで描画（90/270でもボックスに収まる）
-      // 回転後にボックス内へ収めるため、maxを使ってフィットさせる
-      const drawW = (rot === 90 || rot === 270) ? bh : bw;
-      const drawH = (rot === 90 || rot === 270) ? bw : bh;
+    const box = document.createElement("div");
+    box.className = "silhouette-box";
+    box.style.position = "absolute";
+    box.style.left = `${x}px`;
+    box.style.top = `${y}px`;
+    box.style.width = `${bw}px`;
+    box.style.height = `${bh}px`;
+    box.style.pointerEvents = "none";
+    box.style.zIndex = "80";
+    box.style.overflow = "hidden";
 
-      img.style.width = `${drawW}px`;
-      img.style.height = "auto";
-      img.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+    const img = document.createElement("img");
+    img.className = "silhouette";
+    img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
+    img.alt = "";
+    img.draggable = false;
+    img.style.position = "absolute";
+    img.style.left = "50%";
+    img.style.top = "50%";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "contain";
 
-      box.appendChild(img);
-      layer.appendChild(box);
-    });
-  });
+    const rot = pickRot();
+    img.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+
+    box.appendChild(img);
+    layer.appendChild(box);
+  }
 }
 
 let gameStartArmed = false;
