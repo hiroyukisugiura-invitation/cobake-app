@@ -30,8 +30,39 @@ const regFrame = document.getElementById("regFrame");
 
 function openRegPopup(url){
   if (!regPopup || !regFrame) return;
-  regFrame.src = url || "";
+
+  // 背面スクロール無効（iOS対策）
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  document.body.style.touchAction = "none";
+
+  // iframe を確実にリセットしてから読み込む
+  regFrame.src = "";
   show(regPopup);
+
+  // 少し待ってから src をセット（WebView / Safari 対策）
+  window.setTimeout(() => {
+    regFrame.src = url || "";
+  }, 0);
+
+  // 他UIは閉じる
+  hide(drawer);
+  hide(popup);
+}
+
+function closeRegPopup(){
+  if (!regPopup || !regFrame) return;
+
+  hide(regPopup);
+
+  // 閉じたら必ず空にする（次回スクロール位置保持を防ぐ）
+  regFrame.src = "";
+
+  // 背面スクロール復帰
+  document.documentElement.style.overflow = "";
+  document.body.style.overflow = "";
+  document.body.style.touchAction = "";
+
   // 他UIは閉じる
   hide(drawer);
   hide(popup);
@@ -40,6 +71,8 @@ function openRegPopup(url){
 function closeRegPopup(){
   if (!regPopup || !regFrame) return;
   hide(regPopup);
+
+  // 閉じたら必ず空にする（次回スクロール位置保持を防ぐ）
   regFrame.src = "";
 }
 
@@ -530,23 +563,87 @@ function buildCobakeList(){
 function createPiece(id, leftPx, topPx){
   if (!stage) return null;
 
-  const img = document.createElement("img");
-  img.className = "piece";
-  img.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
-  img.alt = id;
-  img.draggable = false;
+  // piece container（子要素を持てるように img → div に変更）
+  const el = document.createElement("div");
+  el.className = "piece";
+  el.dataset.id = id;
 
   // 状態（拡大・回転）
-  img.dataset.scale = "1";
-  img.dataset.rot = "0";
+  el.dataset.scale = "1";
+  el.dataset.rot = "0";
 
-  img.style.position = "absolute";
-  img.style.left = `${leftPx}px`;
-  img.style.top  = `${topPx}px`;
-  img.style.transform = `translate(-50%, -50%) rotate(0deg) scale(1)`;
+  el.style.position = "absolute";
+  el.style.left = `${leftPx}px`;
+  el.style.top  = `${topPx}px`;
+  el.style.transform = `translate(-50%, -50%) rotate(0deg) scale(1)`;
+  el.style.transformOrigin = "50% 50%";
 
-  stage.appendChild(img);
-  return img;
+  // iOS/PC共通：誤選択・ドラッグ画像防止
+  el.style.userSelect = "none";
+  el.style.webkitUserSelect = "none";
+
+  // 中身（画像 + ハンドル）
+  el.innerHTML = `
+    <img
+      class="piece-img"
+      src="./assets/img/cobake/monokuro/monokuro/${id}.png"
+      alt="${id}"
+      draggable="false"
+      style="
+        display:block;
+        width:100%;
+        height:auto;
+        pointer-events:none;
+        -webkit-user-drag:none;
+        user-select:none;
+      "
+    />
+    <button
+      type="button"
+      class="piece-handle piece-handle-rotate"
+      data-handle="rotate"
+      aria-label="rotate"
+      style="
+        position:absolute;
+        right:-12px;
+        top:-12px;
+        width:28px;
+        height:28px;
+        border:0;
+        padding:0;
+        border-radius:999px;
+        background:rgba(255,255,255,0.92);
+        box-shadow:0 2px 8px rgba(0,0,0,0.18);
+        display:none;
+        touch-action:none;
+        cursor:grab;
+      "
+    >↻</button>
+    <button
+      type="button"
+      class="piece-handle piece-handle-scale"
+      data-handle="scale"
+      aria-label="scale"
+      style="
+        position:absolute;
+        right:-12px;
+        bottom:-12px;
+        width:28px;
+        height:28px;
+        border:0;
+        padding:0;
+        border-radius:999px;
+        background:rgba(255,255,255,0.92);
+        box-shadow:0 2px 8px rgba(0,0,0,0.18);
+        display:none;
+        touch-action:none;
+        cursor:nwse-resize;
+      "
+    >↘</button>
+  `;
+
+  stage.appendChild(el);
+  return el;
 }
 
 // 互換：既存呼び出しが残っていても中心に出す
@@ -605,12 +702,20 @@ document.addEventListener("click", () => {
 
   // piece gesture state
   let activeEl = null;
+  let prevActiveEl = null;
+
   const pts = new Map(); // pointerId -> {x,y}
   let startDist = 0;
   let startAng = 0;
   let startScale = 1;
   let startRot = 0;
   let dragOffset = { dx: 0, dy: 0 };
+
+  // PC handle mode（1 pointer）
+  let mode = "move"; // "move" | "rotate" | "scale"
+  let center0 = { x: 0, y: 0 }; // client coords
+  let oneStartAng = 0;          // rad
+  let oneStartDist = 0;         // px
 
   // double tap delete (touch/pen)
   const lastTap = new WeakMap(); // el -> {t, x, y}
@@ -643,6 +748,32 @@ document.addEventListener("click", () => {
   }
   function angle(a, b){
     return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+
+  function setHandlesVisible(el, visible){
+    if (!el) return;
+    const hs = el.querySelectorAll(".piece-handle");
+    hs.forEach((h) => {
+      h.style.display = visible ? "grid" : "none";
+      h.style.placeItems = "center";
+      h.style.fontSize = "14px";
+      h.style.lineHeight = "1";
+    });
+  }
+
+  function selectPiece(el){
+    if (!el) return;
+    if (prevActiveEl && prevActiveEl !== el){
+      setHandlesVisible(prevActiveEl, false);
+    }
+    prevActiveEl = el;
+    activeEl = el;
+    setHandlesVisible(activeEl, true);
+  }
+
+  function getClientCenter(el){
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
   // ===== Drawer Drag & Drop =====
@@ -690,7 +821,8 @@ document.addEventListener("click", () => {
 
       if (inside){
         const p = localXY(ev.clientX, ev.clientY);
-        createPiece(draggingId, p.x, p.y);
+        const el = createPiece(draggingId, p.x, p.y);
+        if (el) selectPiece(el);
       }
 
       draggingId = null;
@@ -705,35 +837,58 @@ document.addEventListener("click", () => {
   stage.addEventListener("dblclick", (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
-    if (!t.classList.contains("piece")) return;
+
+    const piece = t.closest ? t.closest(".piece") : null;
+    if (!(piece instanceof HTMLElement)) return;
+
     e.preventDefault();
     e.stopPropagation();
-    t.remove();
+    piece.remove();
   });
 
   stage.addEventListener("pointerdown", (e) => {
     const t = e.target;
 
-    const hitPiece =
+    const handleEl =
       (t instanceof HTMLElement) &&
-      t.classList.contains("piece");
+      t.closest &&
+      t.closest(".piece-handle");
 
-    // 1本目：piece上のみ開始
+    const pieceEl =
+      (t instanceof HTMLElement) &&
+      t.closest &&
+      t.closest(".piece");
+
+    const hitHandle = handleEl instanceof HTMLElement;
+    const hitPiece = pieceEl instanceof HTMLElement;
+
+    // 1本目：piece or handle のみ開始
     // 2本目以降：activeEl があれば stage 上でも拾う（画像外に指が出てもピンチ/回転成立）
-    if (!hitPiece && !activeEl) return;
+    if (!hitPiece && !hitHandle && !activeEl) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    if (hitPiece) activeEl = t;
+    if (hitPiece){
+      selectPiece(pieceEl);
+    }
 
+    // mode 決定（handle優先）
+    mode = "move";
+    if (hitHandle){
+      const kind = handleEl.getAttribute("data-handle") || "";
+      if (kind === "rotate") mode = "rotate";
+      if (kind === "scale")  mode = "scale";
+    }
+
+    // capture
     if (activeEl && activeEl.setPointerCapture){
       activeEl.setPointerCapture(e.pointerId);
     }
 
     // piece をタップしたときのみ、ダブルタップ判定・ドラッグ基準を更新
-    if (hitPiece){
-      // double tap (touch/pen)
+    // （handle 操作では削除判定しない）
+    if (hitPiece && !hitHandle){
       const now = Date.now();
       const prev = lastTap.get(activeEl);
       if (prev && (now - prev.t) < 320){
@@ -749,18 +904,26 @@ document.addEventListener("click", () => {
       }
       lastTap.set(activeEl, { t: now, x: e.clientX, y: e.clientY });
 
-      // prepare drag offset for 1-finger move
       const p = localXY(e.clientX, e.clientY);
       const curLeft = Number.parseFloat(activeEl.style.left) || p.x;
       const curTop  = Number.parseFloat(activeEl.style.top)  || p.y;
       dragOffset = { dx: curLeft - p.x, dy: curTop - p.y };
     }
 
+    // 1 pointer handle baseline
+    if (activeEl && (mode === "rotate" || mode === "scale")){
+      center0 = getClientCenter(activeEl);
+      oneStartAng = angle(center0, { x: e.clientX, y: e.clientY });
+      oneStartDist = dist(center0, { x: e.clientX, y: e.clientY });
+      startScale = getScale(activeEl);
+      startRot = getRot(activeEl);
+    }
+
     // register pointer
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     // prepare pinch/rotate baseline if 2 pointers
-    if (pts.size === 2){
+    if (activeEl && pts.size === 2){
       const arr = Array.from(pts.values());
       startDist = dist(arr[0], arr[1]);
       startAng = angle(arr[0], arr[1]);
@@ -777,7 +940,7 @@ document.addEventListener("click", () => {
 
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // 2 pointers => pinch/rotate
+    // 2 pointers => pinch/rotate（iPhone/iPad優先）
     if (pts.size >= 2){
       const arr = Array.from(pts.values());
       const d = dist(arr[0], arr[1]);
@@ -789,6 +952,27 @@ document.addEventListener("click", () => {
 
         activeEl.dataset.scale = String(nextScale);
         activeEl.dataset.rot = String(nextRot);
+        applyTransform(activeEl);
+      }
+      return;
+    }
+
+    // 1 pointer => handle rotate/scale (PC)
+    if (mode === "rotate"){
+      const angNow = angle(center0, { x: e.clientX, y: e.clientY });
+      const delta = (angNow - oneStartAng) * 180 / Math.PI;
+      const nextRot = startRot + delta;
+
+      activeEl.dataset.rot = String(nextRot);
+      applyTransform(activeEl);
+      return;
+    }
+
+    if (mode === "scale"){
+      const dNow = dist(center0, { x: e.clientX, y: e.clientY });
+      if (oneStartDist > 0){
+        const nextScale = Math.max(0.2, Math.min(6, startScale * (dNow / oneStartDist)));
+        activeEl.dataset.scale = String(nextScale);
         applyTransform(activeEl);
       }
       return;
@@ -813,12 +997,28 @@ document.addEventListener("click", () => {
     }
 
     if (pts.size === 0){
+      mode = "move";
       activeEl = null;
     }
   }
 
   stage.addEventListener("pointerup", endPointer);
   stage.addEventListener("pointercancel", endPointer);
+
+  // stage クリックで選択解除（ハンドル非表示）
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+
+    const hit = t.closest && t.closest(".piece");
+    if (hit) return;
+
+    if (prevActiveEl){
+      setHandlesVisible(prevActiveEl, false);
+    }
+    prevActiveEl = null;
+    activeEl = null;
+  });
 })();
 
 // =========================

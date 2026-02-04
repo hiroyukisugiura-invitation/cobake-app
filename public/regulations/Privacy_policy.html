@@ -9,32 +9,35 @@
     html,body{
       margin:0;
       padding:0;
-      background:#0f1113;
+      background: transparent; /* ← 重要：iframe内を透過 */
       color:#ffffff;
       font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
     }
     .wrapper{
       max-width: 920px;
       margin: 0 auto;
-      padding: 32px 20px 64px;
+      padding: 28px 22px 64px;
     }
     h1{
       font-size: 22px;
-      margin: 0 0 24px;
-      border-bottom: 1px solid rgba(255,255,255,.15);
+      margin: 0 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,.18);
       padding-bottom: 12px;
     }
     h2{
-      font-size: 16px;
-      margin: 24px 0 8px;
+      font-size: 15px;
+      margin: 22px 0 8px;
+      color: rgba(255,255,255,.92);
     }
     p{
-      line-height: 1.7;
+      line-height: 1.8;
       font-size: 14px;
       margin: 6px 0;
       white-space: pre-wrap;
+      color: rgba(255,255,255,.86);
     }
   </style>
+
 </head>
 <body>
   <div class="wrapper">
