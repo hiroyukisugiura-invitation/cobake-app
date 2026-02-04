@@ -46,20 +46,16 @@ function buildGameSilhouettes(){
   const W = rect.width;
   const H = rect.height;
 
-  // 深緑枠に被らない安全マージン（必要なら数値だけ後で調整）
-  const mLeft   = Math.round(W * 0.08);
-  const mRight  = Math.round(W * 0.08);
-  const mTop    = Math.round(H * 0.10);
-  const mBottom = Math.round(H * 0.10);
-
-  // サイズレンジ（開始ごとにランダム）
-  const minW = Math.round(W * 0.10);
-  const maxW = Math.round(W * 0.28);
+  // 深緑枠に被らない安全マージン（枠内に収める）
+  const mLeft   = Math.round(W * 0.07);
+  const mRight  = Math.round(W * 0.07);
+  const mTop    = Math.round(H * 0.08);
+  const mBottom = Math.round(H * 0.08);
 
   const list = window.COBAKE_DATA || [];
   const ids = list.map(c => c.id);
 
-  // 表示数（上限10）
+  // 10体固定（足りなければあるだけ）
   const pickCount = Math.min(10, ids.length);
 
   // ids を毎回ランダム化
@@ -69,56 +65,89 @@ function buildGameSilhouettes(){
   }
   const picked = ids.slice(0, pickCount);
 
-  // 重なり判定用（回転は無視して「見た目で被らない」を優先）
+  // スクショ2の密度：大→小の比率（合計=pickCountに丸める）
+  // 例：2特大 / 3大 / 3中 / 2小（10体）
+  const tiers = [];
+  const pushMany = (ratio, n) => { for (let i=0;i<n;i++) tiers.push(ratio); };
+
+  if (pickCount >= 10){
+    pushMany(0.40, 2); // 特大
+    pushMany(0.30, 3); // 大
+    pushMany(0.22, 3); // 中
+    pushMany(0.16, 2); // 小
+  } else {
+    // 少ないときは大きめ寄せ
+    pushMany(0.38, Math.max(1, Math.floor(pickCount * 0.2)));
+    pushMany(0.28, Math.max(1, Math.floor(pickCount * 0.3)));
+    pushMany(0.20, Math.max(1, Math.floor(pickCount * 0.3)));
+    while (tiers.length < pickCount) tiers.push(0.16);
+    tiers.length = pickCount;
+  }
+
+  // 大きい順に置く（被りを避けやすい）
+  const order = picked.map((id, i) => ({ id, ratio: tiers[i] }))
+    .sort((a,b) => b.ratio - a.ratio);
+
+  // 重なり判定（回転は無視：被り回避優先）
   const placed = [];
   function intersects(a, b){
     return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
   }
 
-  picked.forEach((id, idx) => {
+  order.forEach(({ id, ratio }, idx) => {
     const img = document.createElement("img");
     img.className = "silhouette";
     img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
     img.alt = "";
     img.draggable = false;
 
-    // 回転（見た目用）
-    const r = -14 + Math.random() * 28; // deg
+    // サイズ（開始ごとに少し揺らす）
+    const jitter = 0.92 + Math.random() * 0.20; // 0.92〜1.12
+    let w = Math.round(W * ratio * jitter);
 
-    // 置けるまで試行
+    // 高さは概算（比率不明なので余裕）
+    const aspect = 1.12;
+    let h = Math.round(w * aspect);
+
+    // 回転（見た目）
+    const r = -16 + Math.random() * 32;
+
     let ok = false;
-    let x = 0, y = 0, w = 0, h = 0;
+    let x = 0, y = 0;
 
-    for (let t = 0; t < 120; t++){
-      w = Math.round(minW + Math.random() * (maxW - minW));
-
-      // 高さは概算（画像比率が不明なので余裕を持たせる）
-      h = Math.round(w * 1.15);
+    // 置けるまで試行（サイズを段階的に縮めて必ず置く）
+    for (let pass = 0; pass < 4 && !ok; pass++){
+      const shrink = 1 - pass * 0.10; // 1.0, 0.9, 0.8, 0.7
+      const ww = Math.max(24, Math.round(w * shrink));
+      const hh = Math.max(24, Math.round(h * shrink));
 
       const xMin = mLeft;
-      const xMax = Math.max(mLeft, W - mRight - w);
+      const xMax = Math.max(mLeft, W - mRight - ww);
       const yMin = mTop;
-      const yMax = Math.max(mTop, H - mBottom - h);
+      const yMax = Math.max(mTop, H - mBottom - hh);
 
-      x = Math.round(xMin + Math.random() * (xMax - xMin));
-      y = Math.round(yMin + Math.random() * (yMax - yMin));
+      for (let t = 0; t < 220; t++){
+        x = Math.round(xMin + Math.random() * (xMax - xMin));
+        y = Math.round(yMin + Math.random() * (yMax - yMin));
 
-      const cand = { x, y, w, h };
-      let hit = false;
-      for (const p of placed){
-        if (intersects(cand, p)){ hit = true; break; }
-      }
-      if (!hit){
-        placed.push(cand);
-        ok = true;
-        break;
+        const cand = { x, y, w: ww, h: hh };
+        let hit = false;
+        for (const p of placed){
+          if (intersects(cand, p)){ hit = true; break; }
+        }
+        if (!hit){
+          placed.push(cand);
+          w = ww; h = hh;
+          ok = true;
+          break;
+        }
       }
     }
 
-    // どうしても置けない場合は最後に安全縮小して端に逃がす（被り回避優先）
+    // 最終フォールバック（絶対枠内）
     if (!ok){
-      w = Math.round(minW);
-      h = Math.round(w * 1.15);
+      w = Math.round(W * 0.14);
+      h = Math.round(w * aspect);
       x = mLeft;
       y = mTop + idx * Math.round(h * 0.55);
       placed.push({ x, y, w, h });
@@ -134,6 +163,33 @@ function buildGameSilhouettes(){
   });
 }
 
+let gameStartArmed = false;
+
+function armGameStartTap(){
+  if (!stage) return;
+  if (gameStartArmed) return;
+  gameStartArmed = true;
+
+  function startGameNow(e){
+    // どこタップでも開始
+    e.preventDefault();
+    e.stopPropagation();
+
+    gameStartArmed = false;
+
+    hide(dokokanaBtn);
+    if (ghostBtn) ghostBtn.hidden = false;
+    if (menuBtn)  menuBtn.hidden  = false;
+
+    stage.removeEventListener("pointerdown", startGameNow, true);
+    stage.removeEventListener("click", startGameNow, true);
+  }
+
+  // pointerdown + click の両方（環境差対策）
+  stage.addEventListener("pointerdown", startGameNow, true);
+  stage.addEventListener("click", startGameNow, true);
+}
+
 function goGame(){
   // START → GAME
   screenStart.classList.remove("is-active");
@@ -147,16 +203,20 @@ function goGame(){
   hide(drawer);
   hide(popup);
 
-  // 右上オバケ/右下× は「dokokana後」に出す
+  // 右上オバケ/右下× は「ゲーム開始タップ後」に出す
   if (ghostBtn) ghostBtn.hidden = true;
   if (menuBtn)  menuBtn.hidden  = true;
 
-  // スクショ3（シルエット表示）
+  // スクショ3（シルエット：画面いっぱい）
   buildGameSilhouettes();
 
-  // スクショ4（dokokanaボタンをフワっと表示）
+  // スクショ4（dokokana表示はするが、押させない）
   hide(dokokanaBtn);
-  window.setTimeout(() => show(dokokanaBtn), 420);
+  window.setTimeout(() => {
+    show(dokokanaBtn);
+    // どこタップでも開始
+    armGameStartTap();
+  }, 420);
 }
 
 function goStart(){
@@ -310,14 +370,11 @@ startBtn.addEventListener("click", (e) => {
 });
 
 if (dokokanaBtn){
+  // dokokanaは「表示」だけ（操作は stage のどこタップでも開始）
   dokokanaBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // スクショ5：ボタンを消して、操作UIを出す
-    hide(dokokanaBtn);
-    if (ghostBtn) ghostBtn.hidden = false;
-    if (menuBtn)  menuBtn.hidden  = false;
+    // 何もしない（誤タップで即開始しない）
   });
 }
 

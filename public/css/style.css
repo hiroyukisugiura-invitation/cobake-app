@@ -206,7 +206,7 @@ body{
 /* dokokana button */
 .dokokana-btn{
   position:absolute;
-  left:50%;
+  left:51%;
   top:40%;
   transform: translate(-50%, -50%);
   border:0;
