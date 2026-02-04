@@ -348,6 +348,9 @@ function buildGameSilhouettes(){
       scale = Math.min(bw / bh, bh / bw); // <= 1 になる
     }
 
+    // snap判定用にシルエット側の回転を保持
+    box.dataset.rot = String(rot);
+
     img.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`;
 
     box.appendChild(img);
@@ -784,84 +787,106 @@ document.addEventListener("click", () => {
     return audioCtx;
   }
 
-  function playKachi(){
-    const ctx = ensureAudio();
-    if (!ctx) return;
+  function trySnap(piece){
+    if (!piece) return false;
+    if (piece.dataset.snapped === "1") return true;
 
-    if (ctx.state === "suspended"){
-      ctx.resume().catch(() => {});
+    const id = piece.dataset.id || "";
+    if (!id) return false;
+
+    const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
+    if (!(box instanceof HTMLElement)) return false;
+    if (box.dataset.filled === "1") return false;
+
+    const br = box.getBoundingClientRect();
+    const sr = stageRect();
+
+    const boxCx = (br.left - sr.left) + br.width / 2;
+    const boxCy = (br.top - sr.top) + br.height / 2;
+
+    const pieceLeft = Number.parseFloat(piece.style.left) || 0;
+    const pieceTop  = Number.parseFloat(piece.style.top)  || 0;
+
+    const dx = pieceLeft - boxCx;
+    const dy = pieceTop - boxCy;
+    const d = Math.hypot(dx, dy);
+
+    // 位置判定（子供向け：少し緩め）
+    const thr = Math.max(16, Math.min(52, Math.min(br.width, br.height) * 0.19));
+    if (d > thr) return false;
+
+    // サイズ・縦横・回転判定（子供向け：緩和）
+    const baseW = piece.offsetWidth || 0;
+    const baseH = piece.offsetHeight || 0;
+    if (baseW <= 0 || baseH <= 0) return false;
+
+    const s = getScale(piece);
+    const effW = baseW * s;
+    const effH = baseH * s;
+
+    const boxW = br.width;
+    const boxH = br.height;
+
+    const tol = 0.30; // ±30%
+    function near(a, b){ return Math.abs(a - b) <= (b * tol); }
+
+    function norm360(v){
+      const x = ((v % 360) + 360) % 360;
+      return x;
     }
 
-    const t0 = ctx.currentTime;
-
-    // シャラーン♪：短いアルペジオ + 余韻
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, t0);
-    master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
-    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
-    master.connect(ctx.destination);
-
-    const freqs = [880, 1320, 1760]; // A5, E6, A6
-
-    freqs.forEach((f, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-
-      o.type = "triangle";
-      o.frequency.setValueAtTime(f, t0);
-
-      const tOn = t0 + (i * 0.05);
-      const tOff = tOn + 0.28;
-
-      g.gain.setValueAtTime(0.0001, tOn);
-      g.gain.exponentialRampToValueAtTime(0.22, tOn + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, tOff);
-
-      o.connect(g);
-      g.connect(master);
-
-      o.start(tOn);
-      o.stop(tOff);
-
-      o.onended = () => {
-        try { o.disconnect(); } catch(_){}
-        try { g.disconnect(); } catch(_){}
-      };
-    });
-
-    // きらめきノイズ（短い高域のシャリ）
-    const noiseDur = 0.08;
-    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++){
-      data[i] = (Math.random() * 2 - 1) * 0.35;
+    function angDiff(a, b){
+      const x = Math.abs(norm360(a) - norm360(b));
+      return Math.min(x, 360 - x);
     }
 
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
+    const targetRot = Number(box.dataset.rot || "0");
+    const pieceRot = getRot(piece);
 
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.setValueAtTime(2500, t0);
+    // 回転許容（±35°）
+    const rotTol = 35;
+    if (angDiff(pieceRot, targetRot) > rotTol) return false;
 
-    const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.0001, t0);
-    ng.gain.exponentialRampToValueAtTime(0.10, t0 + 0.01);
-    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + noiseDur);
+    // 回転が 90°ズレのときは縦横が入れ替わるので swap で判定
+    const isQuarterTurn =
+      (Math.abs(angDiff(pieceRot, targetRot) - 90) <= rotTol) ||
+      (Math.abs(angDiff(pieceRot, targetRot) - 270) <= rotTol);
 
-    noise.connect(hp);
-    hp.connect(ng);
-    ng.connect(master);
+    const directOK = near(effW, boxW) && near(effH, boxH);
+    const swapOK   = near(effW, boxH) && near(effH, boxW);
 
-    noise.start(t0 + 0.02);
-    noise.stop(t0 + 0.02 + noiseDur);
+    if (isQuarterTurn){
+      if (!swapOK) return false;
+    } else {
+      if (!directOK) return false;
+    }
 
-    noise.onended = () => {
-      try { noise.disconnect(); } catch(_){}
-      try { hp.disconnect(); } catch(_){}
-      try { ng.disconnect(); } catch(_){}
-      try { master.disconnect(); } catch(_){}
-    };
+    // snap
+    piece.style.left = `${boxCx}px`;
+    piece.style.top  = `${boxCy}px`;
+
+    piece.dataset.snapped = "1";
+    piece.dataset.locked = "1";
+    piece.classList.add("is-locked");
+    box.dataset.filled = "1";
+
+    // 迷いヒント停止
+    clearHintTimer(piece);
+
+    // ロックしたらハンドルも消す
+    setHandlesVisible(piece, false);
+
+    // カラーに差し替え
+    const img = piece.querySelector(".piece-img");
+    if (img){
+      img.src = `./assets/img/cobake/monokuro/color/${id}.png`;
+    }
+
+    playKachi();
+    sparklePiece(piece);
+    sparkleSilhouette(box);
+
+    return true;
   }
 
   function stageRect(){ return stage.getBoundingClientRect(); }
@@ -927,6 +952,12 @@ document.addEventListener("click", () => {
       window.clearTimeout(id);
     }
     hintTimers.delete(piece);
+
+    const pid = piece.dataset.id || "";
+    if (!pid) return;
+    const box = stage.querySelector(`.silhouette-box[data-id="${pid}"]`);
+    if (!(box instanceof HTMLElement)) return;
+    box.classList.remove("is-hint-loop");
   }
 
   function flashSilhouetteHint(id){
@@ -935,18 +966,14 @@ document.addEventListener("click", () => {
     if (!(box instanceof HTMLElement)) return;
     if (box.dataset.filled === "1") return;
 
-    box.classList.remove("is-hint");
-    void box.offsetWidth;
-    box.classList.add("is-hint");
-
-    window.setTimeout(() => {
-      box.classList.remove("is-hint");
-    }, 1200);
+    // 四角枠の一瞬ヒントは廃止：連続“なぞり光”に統一
+    box.classList.add("is-hint-loop");
   }
 
   function scheduleHint(piece){
     if (!piece) return;
     if (piece.dataset.snapped === "1") return;
+    if (piece.dataset.locked === "1") return;
 
     clearHintTimer(piece);
 
@@ -954,6 +981,7 @@ document.addEventListener("click", () => {
       if (!stage) return;
       if (!document.body.contains(piece)) return;
       if (piece.dataset.snapped === "1") return;
+      if (piece.dataset.locked === "1") return;
 
       const id = piece.dataset.id || "";
       flashSilhouetteHint(id);
