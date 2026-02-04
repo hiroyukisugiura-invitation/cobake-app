@@ -479,9 +479,16 @@ function spawnPiece(id){
 // UI open/close
 // =========================
 ghostBtn.addEventListener("click", (e) => {
+  e.preventDefault();
   e.stopPropagation();
-  if (drawer.hidden) { show(drawer); hide(popup); }
-  else hide(drawer);
+
+  // toggle drawer (character list)
+  if (drawer.hidden){
+    show(drawer);
+    hide(popup);
+  } else {
+    hide(drawer);
+  }
 });
 
 menuBtn.addEventListener("click", (e) => {
