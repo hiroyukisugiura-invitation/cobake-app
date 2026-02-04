@@ -203,7 +203,15 @@ function buildGameSilhouettes(){
     img.style.objectFit = "contain";
 
     const rot = pickRot();
-    img.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+
+    // 90/270 のときは縦横が入れ替わるため、ボックス内に収まるように縮小する
+    // （overflow:hidden による切れを永久に防ぐ）
+    let scale = 1;
+    if (rot === 90 || rot === 270){
+      scale = Math.min(bw / bh, bh / bw); // <= 1 になる
+    }
+
+    img.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`;
 
     box.appendChild(img);
     layer.appendChild(box);
