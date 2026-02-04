@@ -248,11 +248,10 @@ body{
 ========================= */
 .drawer{
   position:absolute;
-  top: 86px;
-  right: 18px;
-
-  width: 92px;
-  height: calc(100% - 120px);
+  top: 121px;
+  right: 46px;
+  width: 93px;
+  height: calc(100% - 170px);
 
   background: rgba(245,245,255,.78);
   border: 1px solid rgba(0,0,0,.08);
@@ -314,7 +313,7 @@ body{
 
 /* thumbnails: png as-is */
 .thumb-img{
-  width: 76px;
+  width: 60px;
   height: auto;
   display:block;
   user-select:none;
