@@ -46,7 +46,7 @@ function buildGameSilhouettes(){
   const W = rect.width;
   const H = rect.height;
 
-  // 深緑枠に被らない安全マージン（枠内に収める）
+  // 深緑枠に被らない安全マージン（永久に枠外NG）
   const mLeft   = Math.round(W * 0.07);
   const mRight  = Math.round(W * 0.07);
   const mTop    = Math.round(H * 0.08);
@@ -65,15 +65,15 @@ function buildGameSilhouettes(){
   }
   const picked = ids.slice(0, pickCount);
 
-  // スクショ2の密度：大→小（10体を想定）
+  // 密度：大→小（10体想定）
   const tiers = [];
   const pushMany = (ratio, n) => { for (let i=0;i<n;i++) tiers.push(ratio); };
 
   if (pickCount >= 10){
-    pushMany(0.40, 2); // 特大
-    pushMany(0.30, 3); // 大
-    pushMany(0.22, 3); // 中
-    pushMany(0.16, 2); // 小
+    pushMany(0.40, 2);
+    pushMany(0.30, 3);
+    pushMany(0.22, 3);
+    pushMany(0.16, 2);
   } else {
     pushMany(0.38, Math.max(1, Math.floor(pickCount * 0.2)));
     pushMany(0.28, Math.max(1, Math.floor(pickCount * 0.3)));
@@ -82,7 +82,7 @@ function buildGameSilhouettes(){
     tiers.length = pickCount;
   }
 
-  // 画像を先に読み込んで比率を取得（被り判定の精度を上げる）
+  // 画像比率を取得
   const loadOne = (id) => new Promise((resolve) => {
     const src = `./assets/img/cobake/monokuro/bk/${id}.png`;
     const im = new Image();
@@ -94,14 +94,18 @@ function buildGameSilhouettes(){
     im.src = src;
   });
 
+  // 0/90/180/270 のみ（回転しても枠外NGを満たすため）
+  const rots = [0, 90, 180, 270];
+  const pickRot = () => rots[Math.floor(Math.random() * rots.length)];
+
   Promise.all(picked.map(loadOne)).then((loaded) => {
-    // 大きい順に置く（被りを避けやすい）
+    // 大きい順に配置
     const order = loaded.map((o, i) => ({ ...o, baseRatio: tiers[i] }))
       .sort((a,b) => b.baseRatio - a.baseRatio);
 
-    // 被り判定（center基準、少し余白を足す）
+    // 被り判定（トップ左基準のAABB）
     const placed = [];
-    const pad = Math.round(Math.min(W, H) * 0.015); // 余白
+    const pad = Math.round(Math.min(W, H) * 0.012); // 余白
 
     function intersects(a, b){
       return !(
@@ -110,45 +114,54 @@ function buildGameSilhouettes(){
       );
     }
 
-    order.forEach(({ id, src, ratio, baseRatio }, idx) => {
-      const img = document.createElement("img");
-      img.className = "silhouette";
-      img.src = src;
-      img.alt = "";
-      img.draggable = false;
+    order.forEach(({ src, ratio, baseRatio }, idx) => {
+      // 回転を先に決める（90/270は w/h が入れ替わる）
+      const rot = pickRot();
 
       // サイズ（開始ごとに少し揺らす）
       const jitter = 0.92 + Math.random() * 0.20;
-      let w = Math.round(W * baseRatio * jitter);
-      let h = Math.round(w * ratio);
 
-      // 回転（見た目）
-      const r = -16 + Math.random() * 32;
+      // まず「非回転の幅」を決める
+      let iw = Math.round(W * baseRatio * jitter);
+      let ih = Math.round(iw * ratio);
 
+      // 表示ボックス（回転後の当たり判定サイズ）
+      let bw = (rot === 90 || rot === 270) ? ih : iw;
+      let bh = (rot === 90 || rot === 270) ? iw : ih;
+
+      // 枠内に必ず収まる上限でクリップ
+      const maxBW = Math.max(24, (W - mLeft - mRight));
+      const maxBH = Math.max(24, (H - mTop - mBottom));
+
+      // 大きすぎる場合は縮小（比率維持）
+      const s1 = Math.min(1, maxBW / bw);
+      const s2 = Math.min(1, maxBH / bh);
+      const sCap = Math.min(s1, s2);
+
+      iw = Math.max(24, Math.round(iw * sCap));
+      ih = Math.max(24, Math.round(ih * sCap));
+      bw = (rot === 90 || rot === 270) ? ih : iw;
+      bh = (rot === 90 || rot === 270) ? iw : ih;
+
+      // 置けるまで試行（縮小しながら、必ず枠内）
       let ok = false;
-      let cx = 0, cy = 0;
+      let x = 0, y = 0;
 
-      // 置けるまで試行（縮小しながら）
-      for (let pass = 0; pass < 5 && !ok; pass++){
-        const shrink = 1 - pass * 0.12; // 1.00,0.88,0.76,0.64,0.52
-        const ww = Math.max(24, Math.round(w * shrink));
-        const hh = Math.max(24, Math.round(h * shrink));
+      for (let pass = 0; pass < 6 && !ok; pass++){
+        const shrink = 1 - pass * 0.10; // 1.0→0.5
+        const bww = Math.max(24, Math.round(bw * shrink));
+        const bhh = Math.max(24, Math.round(bh * shrink));
 
-        const cxMin = mLeft + Math.round(ww / 2);
-        const cxMax = Math.max(cxMin, W - mRight - Math.round(ww / 2));
-        const cyMin = mTop + Math.round(hh / 2);
-        const cyMax = Math.max(cyMin, H - mBottom - Math.round(hh / 2));
+        const xMin = mLeft;
+        const xMax = Math.max(xMin, W - mRight - bww);
+        const yMin = mTop;
+        const yMax = Math.max(yMin, H - mBottom - bhh);
 
-        for (let t = 0; t < 420; t++){
-          cx = Math.round(cxMin + Math.random() * (cxMax - cxMin));
-          cy = Math.round(cyMin + Math.random() * (cyMax - cyMin));
+        for (let t = 0; t < 900; t++){
+          x = Math.round(xMin + Math.random() * (xMax - xMin));
+          y = Math.round(yMin + Math.random() * (yMax - yMin));
 
-          const cand = {
-            x1: cx - Math.round(ww / 2) - pad,
-            y1: cy - Math.round(hh / 2) - pad,
-            x2: cx + Math.round(ww / 2) + pad,
-            y2: cy + Math.round(hh / 2) + pad
-          };
+          const cand = { x1: x - pad, y1: y - pad, x2: x + bww + pad, y2: y + bhh + pad };
 
           let hit = false;
           for (const p of placed){
@@ -156,29 +169,55 @@ function buildGameSilhouettes(){
           }
           if (!hit){
             placed.push(cand);
-            w = ww; h = hh;
+            // 確定サイズをここで採用
+            bw = bww;
+            bh = bhh;
             ok = true;
             break;
           }
         }
       }
 
-      // 最終フォールバック（必ず枠内）
+      // 最終フォールバック（それでも置けない場合：最小で縦に並べる）
       if (!ok){
-        w = Math.round(W * 0.14);
-        h = Math.round(w * ratio);
-        cx = mLeft + Math.round(w / 2);
-        cy = mTop + Math.round(h / 2) + idx * Math.round(h * 0.42);
+        bw = Math.min(bw, Math.max(24, Math.round(W * 0.14)));
+        bh = Math.min(bh, Math.max(24, Math.round(H * 0.18)));
+        x = mLeft;
+        y = Math.min(H - mBottom - bh, mTop + idx * Math.round(bh * 0.55));
       }
 
-      // CSS側の transform を上書きして確実に center 基準にする
-      img.style.left = `${cx}px`;
-      img.style.top  = `${cy}px`;
-      img.style.width = `${w}px`;
-      img.style.height = "auto";
-      img.style.transform = `translate(-50%, -50%) rotate(${r}deg)`;
+      // ボックス（枠内保証）
+      const box = document.createElement("div");
+      box.className = "silhouette-box";
+      box.style.position = "absolute";
+      box.style.left = `${x}px`;
+      box.style.top = `${y}px`;
+      box.style.width = `${bw}px`;
+      box.style.height = `${bh}px`;
+      box.style.pointerEvents = "none";
+      box.style.zIndex = "80";
 
-      layer.appendChild(img);
+      // 画像（ボックス中央に置いて回転）
+      const img = document.createElement("img");
+      img.className = "silhouette";
+      img.src = src;
+      img.alt = "";
+      img.draggable = false;
+      img.style.position = "absolute";
+      img.style.left = "50%";
+      img.style.top = "50%";
+
+      // 画像は回転前のサイズで描画（90/270でもボックスに収まる）
+      // 回転後にボックス内へ収めるため、maxを使ってフィットさせる
+      const drawW = (rot === 90 || rot === 270) ? bh : bw;
+      const drawH = (rot === 90 || rot === 270) ? bw : bh;
+
+      img.style.width = `${drawW}px`;
+      img.style.height = "auto";
+      img.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+
+      box.appendChild(img);
+      layer.appendChild(box);
     });
   });
 }
