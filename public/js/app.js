@@ -42,33 +42,93 @@ function buildGameSilhouettes(){
   layer.className = "silhouette-layer";
   stage.appendChild(layer);
 
+  const rect = stage.getBoundingClientRect();
+  const W = rect.width;
+  const H = rect.height;
+
+  // 深緑枠に被らない安全マージン（必要なら数値だけ後で調整）
+  const mLeft   = Math.round(W * 0.08);
+  const mRight  = Math.round(W * 0.08);
+  const mTop    = Math.round(H * 0.10);
+  const mBottom = Math.round(H * 0.10);
+
+  // サイズレンジ（開始ごとにランダム）
+  const minW = Math.round(W * 0.10);
+  const maxW = Math.round(W * 0.28);
+
   const list = window.COBAKE_DATA || [];
   const ids = list.map(c => c.id);
 
-  // 10体程度をランダム表示（毎回変わる）
+  // 表示数（上限10）
   const pickCount = Math.min(10, ids.length);
+
+  // ids を毎回ランダム化
   for (let i = ids.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
   const picked = ids.slice(0, pickCount);
 
-  picked.forEach((id) => {
+  // 重なり判定用（回転は無視して「見た目で被らない」を優先）
+  const placed = [];
+  function intersects(a, b){
+    return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  }
+
+  picked.forEach((id, idx) => {
     const img = document.createElement("img");
     img.className = "silhouette";
     img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
     img.alt = "";
     img.draggable = false;
 
-    // ざっくり配置（画面内）
-    const left = 6 + Math.random() * 78; // %
-    const top  = 10 + Math.random() * 72; // %
-    const s    = 0.55 + Math.random() * 0.75; // scale
-    const r    = -18 + Math.random() * 36; // deg
+    // 回転（見た目用）
+    const r = -14 + Math.random() * 28; // deg
 
-    img.style.left = `${left}%`;
-    img.style.top  = `${top}%`;
-    img.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+    // 置けるまで試行
+    let ok = false;
+    let x = 0, y = 0, w = 0, h = 0;
+
+    for (let t = 0; t < 120; t++){
+      w = Math.round(minW + Math.random() * (maxW - minW));
+
+      // 高さは概算（画像比率が不明なので余裕を持たせる）
+      h = Math.round(w * 1.15);
+
+      const xMin = mLeft;
+      const xMax = Math.max(mLeft, W - mRight - w);
+      const yMin = mTop;
+      const yMax = Math.max(mTop, H - mBottom - h);
+
+      x = Math.round(xMin + Math.random() * (xMax - xMin));
+      y = Math.round(yMin + Math.random() * (yMax - yMin));
+
+      const cand = { x, y, w, h };
+      let hit = false;
+      for (const p of placed){
+        if (intersects(cand, p)){ hit = true; break; }
+      }
+      if (!hit){
+        placed.push(cand);
+        ok = true;
+        break;
+      }
+    }
+
+    // どうしても置けない場合は最後に安全縮小して端に逃がす（被り回避優先）
+    if (!ok){
+      w = Math.round(minW);
+      h = Math.round(w * 1.15);
+      x = mLeft;
+      y = mTop + idx * Math.round(h * 0.55);
+      placed.push({ x, y, w, h });
+    }
+
+    img.style.left = `${x}px`;
+    img.style.top  = `${y}px`;
+    img.style.width = `${w}px`;
+    img.style.height = "auto";
+    img.style.transform = `rotate(${r}deg)`;
 
     layer.appendChild(img);
   });

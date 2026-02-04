@@ -200,14 +200,14 @@ body{
   display:block;
 }
 
-.icon-top-right{ top: 18px; right: 18px; }
-.icon-bottom-right{ bottom: 18px; right: 18px; }
+.icon-top-right{ top: 50px; right: 49px; }
+.icon-bottom-right{ bottom: 45px; right: 49px; }
 
 /* dokokana button */
 .dokokana-btn{
   position:absolute;
   left:50%;
-  top:24%;
+  top:40%;
   transform: translate(-50%, -50%);
   border:0;
   background:transparent;
