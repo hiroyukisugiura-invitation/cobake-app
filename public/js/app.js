@@ -36,10 +36,9 @@ function goGame(){
   screenStart.classList.remove("is-active");
   screenGame.classList.add("is-active");
 
-  // 念のため START側UIを初期化
+  // START側UIを初期化
   hide(startBtn);
   startPopArea.innerHTML = "";
-}
 
   // game ui reset
   hide(drawer);
