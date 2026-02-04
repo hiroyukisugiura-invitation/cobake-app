@@ -185,23 +185,30 @@ body{
    CHARABUTTON (top-right)
    - larger size
 ========================= */
+/* =========================
+   ICON BUTTON (no frame)
+   charabutton / backbutton
+========================= */
 .icon-btn{
   position:absolute;
   width: 72px;
   height: 72px;
-  border:0;
-  padding:0;
-  background: rgba(255,255,255,.45);
-  border-radius: 18px;
-  display:grid;
-  place-items:center;
+  border: 0;
+  padding: 0;
+  background: transparent;   /* 枠・背景なし */
+  border-radius: 0;          /* 角丸なし */
+  box-shadow: none;          /* 影なし */
+  display: grid;
+  place-items: center;
   z-index: 200;
 }
 
 .icon-btn img{
-  width: 44px;
-  height:auto;
-  display:block;
+  width: 75px;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .icon-top-right{
@@ -259,8 +266,8 @@ body{
 ========================= */
 .drawer{
   position:absolute;
-  top: 118px;
-  right: 42px;
+  top: 130px;
+  right: 52px;
 
   width: 108px;
   height: calc(100% - 180px);
@@ -298,13 +305,11 @@ body{
   width:100%;
   height:100%;
   overflow-y: auto;
-
   display:flex;
   flex-direction: column;
   align-items: center;
-
-  gap: 14px;
-  padding: 8px 0 14px;
+  gap: 20px;
+  padding: 33px 0 14px;
 }
 
 /* no individual frames */
@@ -335,11 +340,6 @@ body{
   display:block;
   user-select:none;
   -webkit-user-drag:none;
-}
-
-/* 下から4つ目を横向き（下から数える） */
-.drawer-items .cobake-item:nth-last-child(4) .thumb-img{
-  transform: rotate(90deg);
 }
 
 /* optional: size variance (manual-friendly) */

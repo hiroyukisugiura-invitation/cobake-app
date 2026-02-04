@@ -437,8 +437,14 @@ if (dokokanaBtn){
 // Drawer list (monokuro)
 // =========================
 function buildCobakeList(){
-  const list = window.COBAKE_DATA || [];
+  const list = Array.isArray(window.COBAKE_DATA) ? [...window.COBAKE_DATA] : [];
   cobakeList.innerHTML = "";
+
+  // 毎回ランダム順（右枠内もランダム）
+  for (let i = list.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
 
   list.forEach((c) => {
     const btn = document.createElement("button");
@@ -484,6 +490,7 @@ ghostBtn.addEventListener("click", (e) => {
 
   // toggle drawer (character list)
   if (drawer.hidden){
+    buildCobakeList(); // 開くたびランダム
     show(drawer);
     hide(popup);
   } else {
