@@ -22,6 +22,59 @@ const stage      = document.getElementById("stage");
 // dokokana
 const dokokanaBtn = document.getElementById("dokokanaBtn");
 
+// regulations popup
+const regPopup = document.getElementById("regPopup");
+const regMask  = document.getElementById("regMask");
+const regClose = document.getElementById("regClose");
+const regFrame = document.getElementById("regFrame");
+
+function openRegPopup(url){
+  if (!regPopup || !regFrame) return;
+  regFrame.src = url || "";
+  show(regPopup);
+  // 他UIは閉じる
+  hide(drawer);
+  hide(popup);
+}
+
+function closeRegPopup(){
+  if (!regPopup || !regFrame) return;
+  hide(regPopup);
+  regFrame.src = "";
+}
+
+// legal icons -> popup
+document.querySelectorAll(".legal-icons a").forEach((a) => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = a.getAttribute("href") || "";
+    openRegPopup(url);
+  });
+});
+
+// close actions
+if (regClose){
+  regClose.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeRegPopup();
+  });
+}
+
+if (regMask){
+  regMask.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeRegPopup();
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (!regPopup || regPopup.hidden) return;
+  if (e.key === "Escape") closeRegPopup();
+});
+
 function show(el){
   if (!el) return;
   el.hidden = false;
