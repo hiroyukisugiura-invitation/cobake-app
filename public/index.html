@@ -40,13 +40,13 @@
 
         <!-- legal icons (bottom-right) -->
         <div class="legal-icons">
-          <a href="./regulations/Transactions.html" aria-label="特定取引商法">
+          <a href="./regulations/transactions.html" aria-label="特定取引商法">
             <img src="./button/tokusyo.png" alt="">
           </a>
           <a href="./regulations/terms_of_service.html" aria-label="利用規約">
             <img src="./button/riyoukiyaku.png" alt="">
           </a>
-          <a href="./regulations/Privacy_policy.html" aria-label="プライバシーポリシー">
+          <a href="./regulations/privacy_policy.html" aria-label="プライバシーポリシー">
             <img src="./button/privacy.png" alt="">
           </a>
         </div>
@@ -106,8 +106,13 @@
   <!-- regulations popup -->
   <div class="reg-popup" id="regPopup" hidden>
     <div class="reg-mask" id="regMask"></div>
+
     <div class="reg-panel">
-      <button class="reg-close" id="regClose" aria-label="close">×</button>
+      <div class="reg-header">
+        <div class="reg-title" id="regTitle">Regulations</div>
+        <button class="reg-close" id="regClose" aria-label="close">×</button>
+      </div>
+
       <iframe
         class="reg-frame"
         id="regFrame"

@@ -23,32 +23,89 @@ const stage      = document.getElementById("stage");
 const dokokanaBtn = document.getElementById("dokokanaBtn");
 
 // regulations popup
-const regPopup = document.getElementById("regPopup");
-const regMask  = document.getElementById("regMask");
-const regClose = document.getElementById("regClose");
-const regFrame = document.getElementById("regFrame");
+const regPopup  = document.getElementById("regPopup");
+const regMask   = document.getElementById("regMask");
+const regClose  = document.getElementById("regClose");
+const regFrame  = document.getElementById("regFrame");
+const regTitle  = document.getElementById("regTitle");
+
+function ensureRegLoading(){
+  let el = document.querySelector(".reg-loading");
+  if (el) return el;
+
+  el = document.createElement("div");
+  el.className = "reg-loading";
+  el.textContent = "Loading";
+  regPopup.querySelector(".reg-panel").appendChild(el);
+  return el;
+}
+
+function titleFromUrl(url){
+  if (!url) return "Regulations";
+  if (url.includes("transactions")) return "特定商取引法";
+  if (url.includes("terms_of_service")) return "利用規約";
+  if (url.includes("privacy_policy")) return "プライバシーポリシー";
+  return "Regulations";
+}
 
 function openRegPopup(url){
   if (!regPopup || !regFrame) return;
 
-  // 背面スクロール無効（iOS対策）
   document.documentElement.style.overflow = "hidden";
   document.body.style.overflow = "hidden";
   document.body.style.touchAction = "none";
 
-  // iframe を確実にリセットしてから読み込む
+  const loading = ensureRegLoading();
+  loading.style.display = "grid";
+
+  if (regTitle) regTitle.textContent = titleFromUrl(url);
+
   regFrame.src = "";
   show(regPopup);
 
-  // 少し待ってから src をセット（WebView / Safari 対策）
   window.setTimeout(() => {
     regFrame.src = url || "";
   }, 0);
 
-  // 他UIは閉じる
   hide(drawer);
   hide(popup);
 }
+
+function closeRegPopup(){
+  if (!regPopup || !regFrame) return;
+
+  hide(regPopup);
+  regFrame.src = "";
+
+  const loading = document.querySelector(".reg-loading");
+  if (loading) loading.style.display = "none";
+
+  document.documentElement.style.overflow = "";
+  document.body.style.overflow = "";
+  document.body.style.touchAction = "";
+
+  hide(drawer);
+  hide(popup);
+}
+
+/* iframe load -> hide loading */
+if (regFrame){
+  regFrame.addEventListener("load", () => {
+    const loading = document.querySelector(".reg-loading");
+    if (loading) loading.style.display = "none";
+  });
+}
+
+/* extra shortcuts */
+document.addEventListener("keydown", (e) => {
+  if (!regPopup || regPopup.hidden) return;
+  if (e.key === "Escape") closeRegPopup();
+});
+
+document.addEventListener("touchstart", (e) => {
+  if (!regPopup || regPopup.hidden) return;
+  if (e.touches && e.touches.length === 2) closeRegPopup();
+});
 
 function closeRegPopup(){
   if (!regPopup || !regFrame) return;
@@ -66,14 +123,6 @@ function closeRegPopup(){
   // 他UIは閉じる
   hide(drawer);
   hide(popup);
-}
-
-function closeRegPopup(){
-  if (!regPopup || !regFrame) return;
-  hide(regPopup);
-
-  // 閉じたら必ず空にする（次回スクロール位置保持を防ぐ）
-  regFrame.src = "";
 }
 
 // legal icons -> popup
@@ -267,6 +316,8 @@ function buildGameSilhouettes(){
 
     const box = document.createElement("div");
     box.className = "silhouette-box";
+    box.dataset.id = id;
+    box.dataset.filled = "0";
     box.style.position = "absolute";
     box.style.left = `${x}px`;
     box.style.top = `${y}px`;
@@ -720,6 +771,99 @@ document.addEventListener("click", () => {
   // double tap delete (touch/pen)
   const lastTap = new WeakMap(); // el -> {t, x, y}
 
+  // hint timers (piece -> timeoutId)
+  const hintTimers = new WeakMap();
+
+  // tiny click sound (no asset)
+  let audioCtx = null;
+  function ensureAudio(){
+    if (audioCtx) return audioCtx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+    return audioCtx;
+  }
+
+  function playKachi(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+
+    if (ctx.state === "suspended"){
+      ctx.resume().catch(() => {});
+    }
+
+    const t0 = ctx.currentTime;
+
+    // シャラーン♪：短いアルペジオ + 余韻
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, t0);
+    master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+    master.connect(ctx.destination);
+
+    const freqs = [880, 1320, 1760]; // A5, E6, A6
+
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      o.type = "triangle";
+      o.frequency.setValueAtTime(f, t0);
+
+      const tOn = t0 + (i * 0.05);
+      const tOff = tOn + 0.28;
+
+      g.gain.setValueAtTime(0.0001, tOn);
+      g.gain.exponentialRampToValueAtTime(0.22, tOn + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, tOff);
+
+      o.connect(g);
+      g.connect(master);
+
+      o.start(tOn);
+      o.stop(tOff);
+
+      o.onended = () => {
+        try { o.disconnect(); } catch(_){}
+        try { g.disconnect(); } catch(_){}
+      };
+    });
+
+    // きらめきノイズ（短い高域のシャリ）
+    const noiseDur = 0.08;
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++){
+      data[i] = (Math.random() * 2 - 1) * 0.35;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(2500, t0);
+
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t0);
+    ng.gain.exponentialRampToValueAtTime(0.10, t0 + 0.01);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + noiseDur);
+
+    noise.connect(hp);
+    hp.connect(ng);
+    ng.connect(master);
+
+    noise.start(t0 + 0.02);
+    noise.stop(t0 + 0.02 + noiseDur);
+
+    noise.onended = () => {
+      try { noise.disconnect(); } catch(_){}
+      try { hp.disconnect(); } catch(_){}
+      try { ng.disconnect(); } catch(_){}
+      try { master.disconnect(); } catch(_){}
+    };
+  }
+
   function stageRect(){ return stage.getBoundingClientRect(); }
 
   function localXY(clientX, clientY){
@@ -776,6 +920,140 @@ document.addEventListener("click", () => {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
+  function clearHintTimer(piece){
+    if (!piece) return;
+    const id = hintTimers.get(piece);
+    if (typeof id === "number"){
+      window.clearTimeout(id);
+    }
+    hintTimers.delete(piece);
+  }
+
+  function flashSilhouetteHint(id){
+    if (!id) return;
+    const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
+    if (!(box instanceof HTMLElement)) return;
+    if (box.dataset.filled === "1") return;
+
+    box.classList.remove("is-hint");
+    void box.offsetWidth;
+    box.classList.add("is-hint");
+
+    window.setTimeout(() => {
+      box.classList.remove("is-hint");
+    }, 1200);
+  }
+
+  function scheduleHint(piece){
+    if (!piece) return;
+    if (piece.dataset.snapped === "1") return;
+
+    clearHintTimer(piece);
+
+    const tid = window.setTimeout(() => {
+      if (!stage) return;
+      if (!document.body.contains(piece)) return;
+      if (piece.dataset.snapped === "1") return;
+
+      const id = piece.dataset.id || "";
+      flashSilhouetteHint(id);
+    }, 2200);
+
+    hintTimers.set(piece, tid);
+  }
+
+  function sparklePiece(piece){
+    if (!piece) return;
+    piece.classList.remove("is-correct");
+    void piece.offsetWidth;
+    piece.classList.add("is-correct");
+    window.setTimeout(() => piece.classList.remove("is-correct"), 700);
+  }
+
+  function sparkleSilhouette(box){
+    if (!box) return;
+    box.classList.remove("is-correct");
+    void box.offsetWidth;
+    box.classList.add("is-correct");
+    window.setTimeout(() => box.classList.remove("is-correct"), 700);
+  }
+
+  function trySnap(piece){
+    if (!piece) return false;
+    if (piece.dataset.snapped === "1") return true;
+
+    const id = piece.dataset.id || "";
+    if (!id) return false;
+
+    const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
+    if (!(box instanceof HTMLElement)) return false;
+    if (box.dataset.filled === "1") return false;
+
+    const br = box.getBoundingClientRect();
+    const sr = stageRect();
+
+    const boxCx = (br.left - sr.left) + br.width / 2;
+    const boxCy = (br.top - sr.top) + br.height / 2;
+
+    const pieceLeft = Number.parseFloat(piece.style.left) || 0;
+    const pieceTop  = Number.parseFloat(piece.style.top)  || 0;
+
+    const dx = pieceLeft - boxCx;
+    const dy = pieceTop - boxCy;
+    const d = Math.hypot(dx, dy);
+
+    // 位置判定（少し厳しめ）
+    const thr = Math.max(14, Math.min(44, Math.min(br.width, br.height) * 0.16));
+    if (d > thr) return false;
+
+    // サイズ・縦横・回転判定
+    const baseW = piece.offsetWidth || 0;
+    const baseH = piece.offsetHeight || 0;
+    if (baseW <= 0 || baseH <= 0) return false;
+
+    const s = getScale(piece);
+    const effW = baseW * s;
+    const effH = baseH * s;
+
+    const boxW = br.width;
+    const boxH = br.height;
+
+    const tol = 0.18; // ±18%
+    function near(a, b){ return Math.abs(a - b) <= (b * tol); }
+
+    const directOK = near(effW, boxW) && near(effH, boxH);
+    const swapOK   = near(effW, boxH) && near(effH, boxW);
+
+    if (!directOK && !swapOK) return false;
+
+    // swap の場合は 90度系の回転が必須（縦横が合ってないのにOK防止）
+    if (swapOK && !directOK){
+      const r0 = ((getRot(piece) % 360) + 360) % 360;
+      const is90 = (Math.min(Math.abs(r0 - 90), Math.abs(r0 - 270)) <= 25);
+      if (!is90) return false;
+    }
+
+    // snap
+    piece.style.left = `${boxCx}px`;
+    piece.style.top  = `${boxCy}px`;
+
+    piece.dataset.snapped = "1";
+    piece.dataset.locked = "1";
+    piece.classList.add("is-locked");
+    box.dataset.filled = "1";
+
+    clearHintTimer(piece);
+
+    // ロックしたらハンドルも消す
+    setHandlesVisible(piece, false);
+
+    playKachi();
+    sparklePiece(piece);
+    sparkleSilhouette(box);
+
+    return true;
+  }
+
   // ===== Drawer Drag & Drop =====
   window.startDragFromDrawer = function(e, id){
     draggingId = id;
@@ -822,7 +1100,11 @@ document.addEventListener("click", () => {
       if (inside){
         const p = localXY(ev.clientX, ev.clientY);
         const el = createPiece(draggingId, p.x, p.y);
-        if (el) selectPiece(el);
+        if (el){
+          el.dataset.snapped = "0";
+          selectPiece(el);
+          scheduleHint(el);
+        }
       }
 
       draggingId = null;
@@ -840,6 +1122,10 @@ document.addEventListener("click", () => {
 
     const piece = t.closest ? t.closest(".piece") : null;
     if (!(piece instanceof HTMLElement)) return;
+
+    if (piece.dataset.locked === "1") return;
+
+    clearHintTimer(piece);
 
     e.preventDefault();
     e.stopPropagation();
@@ -862,15 +1148,24 @@ document.addEventListener("click", () => {
     const hitHandle = handleEl instanceof HTMLElement;
     const hitPiece = pieceEl instanceof HTMLElement;
 
+    // ロック中の activeEl は操作させない
+    if (activeEl && activeEl.dataset.locked === "1") return;
+
     // 1本目：piece or handle のみ開始
     // 2本目以降：activeEl があれば stage 上でも拾う（画像外に指が出てもピンチ/回転成立）
     if (!hitPiece && !hitHandle && !activeEl) return;
+
+    // ロック済み piece は一切触れない
+    if (hitPiece && pieceEl.dataset.locked === "1") return;
 
     e.preventDefault();
     e.stopPropagation();
 
     if (hitPiece){
       selectPiece(pieceEl);
+      if (activeEl && activeEl.dataset.snapped !== "1"){
+        scheduleHint(activeEl);
+      }
     }
 
     // mode 決定（handle優先）
@@ -895,6 +1190,7 @@ document.addEventListener("click", () => {
         const dx = e.clientX - prev.x;
         const dy = e.clientY - prev.y;
         if ((dx*dx + dy*dy) < (18*18)){
+          clearHintTimer(activeEl);
           activeEl.remove();
           lastTap.delete(activeEl);
           activeEl = null;
@@ -997,6 +1293,9 @@ document.addEventListener("click", () => {
     }
 
     if (pts.size === 0){
+      if (activeEl && activeEl.dataset.snapped !== "1"){
+        trySnap(activeEl);
+      }
       mode = "move";
       activeEl = null;
     }
