@@ -315,7 +315,6 @@ body{
 .cobake-item{
   width: 88px;
   height: auto;
-}
   border: 0;
   background: transparent;
   padding: 0;
@@ -334,10 +333,12 @@ body{
   width: 72px;
   height: auto;
   display:block;
+  user-select:none;
+  -webkit-user-drag:none;
 }
 
-/* individual tuning hooks */
-.drawer-items .cobake-item:nth-child(4) .thumb-img{
+/* 下から4つ目を横向き（下から数える） */
+.drawer-items .cobake-item:nth-last-child(4) .thumb-img{
   transform: rotate(90deg);
 }
 
@@ -347,6 +348,3 @@ body{
 .drawer-items .cobake-item:nth-child(3) .thumb-img{ width: 70px; }
 .drawer-items .cobake-item:nth-child(4) .thumb-img{ width: 76px; }
 .drawer-items .cobake-item:nth-child(5) .thumb-img{ width: 72px; }
-  user-select:none;
-  -webkit-user-drag:none;
-}
