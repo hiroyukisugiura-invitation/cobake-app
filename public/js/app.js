@@ -65,8 +65,7 @@ function buildGameSilhouettes(){
   }
   const picked = ids.slice(0, pickCount);
 
-  // スクショ2の密度：大→小の比率（合計=pickCountに丸める）
-  // 例：2特大 / 3大 / 3中 / 2小（10体）
+  // スクショ2の密度：大→小（10体を想定）
   const tiers = [];
   const pushMany = (ratio, n) => { for (let i=0;i<n;i++) tiers.push(ratio); };
 
@@ -76,7 +75,6 @@ function buildGameSilhouettes(){
     pushMany(0.22, 3); // 中
     pushMany(0.16, 2); // 小
   } else {
-    // 少ないときは大きめ寄せ
     pushMany(0.38, Math.max(1, Math.floor(pickCount * 0.2)));
     pushMany(0.28, Math.max(1, Math.floor(pickCount * 0.3)));
     pushMany(0.20, Math.max(1, Math.floor(pickCount * 0.3)));
@@ -84,82 +82,104 @@ function buildGameSilhouettes(){
     tiers.length = pickCount;
   }
 
-  // 大きい順に置く（被りを避けやすい）
-  const order = picked.map((id, i) => ({ id, ratio: tiers[i] }))
-    .sort((a,b) => b.ratio - a.ratio);
+  // 画像を先に読み込んで比率を取得（被り判定の精度を上げる）
+  const loadOne = (id) => new Promise((resolve) => {
+    const src = `./assets/img/cobake/monokuro/bk/${id}.png`;
+    const im = new Image();
+    im.onload = () => {
+      const ratio = (im.naturalWidth > 0) ? (im.naturalHeight / im.naturalWidth) : 1.2;
+      resolve({ id, src, ratio });
+    };
+    im.onerror = () => resolve({ id, src, ratio: 1.2 });
+    im.src = src;
+  });
 
-  // 重なり判定（回転は無視：被り回避優先）
-  const placed = [];
-  function intersects(a, b){
-    return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-  }
+  Promise.all(picked.map(loadOne)).then((loaded) => {
+    // 大きい順に置く（被りを避けやすい）
+    const order = loaded.map((o, i) => ({ ...o, baseRatio: tiers[i] }))
+      .sort((a,b) => b.baseRatio - a.baseRatio);
 
-  order.forEach(({ id, ratio }, idx) => {
-    const img = document.createElement("img");
-    img.className = "silhouette";
-    img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
-    img.alt = "";
-    img.draggable = false;
+    // 被り判定（center基準、少し余白を足す）
+    const placed = [];
+    const pad = Math.round(Math.min(W, H) * 0.015); // 余白
 
-    // サイズ（開始ごとに少し揺らす）
-    const jitter = 0.92 + Math.random() * 0.20; // 0.92〜1.12
-    let w = Math.round(W * ratio * jitter);
+    function intersects(a, b){
+      return !(
+        a.x2 <= b.x1 || b.x2 <= a.x1 ||
+        a.y2 <= b.y1 || b.y2 <= a.y1
+      );
+    }
 
-    // 高さは概算（比率不明なので余裕）
-    const aspect = 1.12;
-    let h = Math.round(w * aspect);
+    order.forEach(({ id, src, ratio, baseRatio }, idx) => {
+      const img = document.createElement("img");
+      img.className = "silhouette";
+      img.src = src;
+      img.alt = "";
+      img.draggable = false;
 
-    // 回転（見た目）
-    const r = -16 + Math.random() * 32;
+      // サイズ（開始ごとに少し揺らす）
+      const jitter = 0.92 + Math.random() * 0.20;
+      let w = Math.round(W * baseRatio * jitter);
+      let h = Math.round(w * ratio);
 
-    let ok = false;
-    let x = 0, y = 0;
+      // 回転（見た目）
+      const r = -16 + Math.random() * 32;
 
-    // 置けるまで試行（サイズを段階的に縮めて必ず置く）
-    for (let pass = 0; pass < 4 && !ok; pass++){
-      const shrink = 1 - pass * 0.10; // 1.0, 0.9, 0.8, 0.7
-      const ww = Math.max(24, Math.round(w * shrink));
-      const hh = Math.max(24, Math.round(h * shrink));
+      let ok = false;
+      let cx = 0, cy = 0;
 
-      const xMin = mLeft;
-      const xMax = Math.max(mLeft, W - mRight - ww);
-      const yMin = mTop;
-      const yMax = Math.max(mTop, H - mBottom - hh);
+      // 置けるまで試行（縮小しながら）
+      for (let pass = 0; pass < 5 && !ok; pass++){
+        const shrink = 1 - pass * 0.12; // 1.00,0.88,0.76,0.64,0.52
+        const ww = Math.max(24, Math.round(w * shrink));
+        const hh = Math.max(24, Math.round(h * shrink));
 
-      for (let t = 0; t < 220; t++){
-        x = Math.round(xMin + Math.random() * (xMax - xMin));
-        y = Math.round(yMin + Math.random() * (yMax - yMin));
+        const cxMin = mLeft + Math.round(ww / 2);
+        const cxMax = Math.max(cxMin, W - mRight - Math.round(ww / 2));
+        const cyMin = mTop + Math.round(hh / 2);
+        const cyMax = Math.max(cyMin, H - mBottom - Math.round(hh / 2));
 
-        const cand = { x, y, w: ww, h: hh };
-        let hit = false;
-        for (const p of placed){
-          if (intersects(cand, p)){ hit = true; break; }
-        }
-        if (!hit){
-          placed.push(cand);
-          w = ww; h = hh;
-          ok = true;
-          break;
+        for (let t = 0; t < 420; t++){
+          cx = Math.round(cxMin + Math.random() * (cxMax - cxMin));
+          cy = Math.round(cyMin + Math.random() * (cyMax - cyMin));
+
+          const cand = {
+            x1: cx - Math.round(ww / 2) - pad,
+            y1: cy - Math.round(hh / 2) - pad,
+            x2: cx + Math.round(ww / 2) + pad,
+            y2: cy + Math.round(hh / 2) + pad
+          };
+
+          let hit = false;
+          for (const p of placed){
+            if (intersects(cand, p)){ hit = true; break; }
+          }
+          if (!hit){
+            placed.push(cand);
+            w = ww; h = hh;
+            ok = true;
+            break;
+          }
         }
       }
-    }
 
-    // 最終フォールバック（絶対枠内）
-    if (!ok){
-      w = Math.round(W * 0.14);
-      h = Math.round(w * aspect);
-      x = mLeft;
-      y = mTop + idx * Math.round(h * 0.55);
-      placed.push({ x, y, w, h });
-    }
+      // 最終フォールバック（必ず枠内）
+      if (!ok){
+        w = Math.round(W * 0.14);
+        h = Math.round(w * ratio);
+        cx = mLeft + Math.round(w / 2);
+        cy = mTop + Math.round(h / 2) + idx * Math.round(h * 0.42);
+      }
 
-    img.style.left = `${x}px`;
-    img.style.top  = `${y}px`;
-    img.style.width = `${w}px`;
-    img.style.height = "auto";
-    img.style.transform = `rotate(${r}deg)`;
+      // CSS側の transform を上書きして確実に center 基準にする
+      img.style.left = `${cx}px`;
+      img.style.top  = `${cy}px`;
+      img.style.width = `${w}px`;
+      img.style.height = "auto";
+      img.style.transform = `translate(-50%, -50%) rotate(${r}deg)`;
 
-    layer.appendChild(img);
+      layer.appendChild(img);
+    });
   });
 }
 
