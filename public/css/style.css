@@ -181,26 +181,33 @@ body{
 }
 
 /* icon buttons (prevents giant images) */
+/* =========================
+   CHARABUTTON (top-right)
+   - larger size
+========================= */
 .icon-btn{
   position:absolute;
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   border:0;
   padding:0;
-  background: rgba(255,255,255,.40);
-  border-radius: 14px;
+  background: rgba(255,255,255,.45);
+  border-radius: 18px;
   display:grid;
   place-items:center;
   z-index: 200;
 }
 
 .icon-btn img{
-  width: 34px;
+  width: 44px;
   height:auto;
   display:block;
 }
 
-.icon-top-right{ top: 50px; right: 49px; }
+.icon-top-right{
+  top: 42px;
+  right: 42px;
+}
 .icon-bottom-right{ bottom: 45px; right: 49px; }
 
 /* dokokana button */
@@ -246,12 +253,17 @@ body{
    - no individual frames
    - slide down on open
 ========================= */
+/* =========================
+   DRAWER (character list)
+   - vertical frame required
+========================= */
 .drawer{
   position:absolute;
-  top: 121px;
-  right: 46px;
-  width: 93px;
-  height: calc(100% - 170px);
+  top: 118px;
+  right: 42px;
+
+  width: 108px;
+  height: calc(100% - 180px);
 
   background: rgba(245,245,255,.78);
   border: 1px solid rgba(0,0,0,.08);
@@ -291,14 +303,19 @@ body{
   flex-direction: column;
   align-items: center;
 
-  gap: 12px;
-  padding: 4px 0 10px;
+  gap: 14px;
+  padding: 8px 0 14px;
 }
 
 /* no individual frames */
+/* =========================
+   COBake list items
+   - balanced sizes
+========================= */
 .cobake-item{
-  width: 76px;
-  height: 76px;
+  width: 88px;
+  height: auto;
+}
   border: 0;
   background: transparent;
   padding: 0;
@@ -312,10 +329,24 @@ body{
 }
 
 /* thumbnails: png as-is */
+/* base size (can be manually tuned) */
 .thumb-img{
-  width: 60px;
+  width: 72px;
   height: auto;
   display:block;
+}
+
+/* individual tuning hooks */
+.drawer-items .cobake-item:nth-child(4) .thumb-img{
+  transform: rotate(90deg);
+}
+
+/* optional: size variance (manual-friendly) */
+.drawer-items .cobake-item:nth-child(1) .thumb-img{ width: 78px; }
+.drawer-items .cobake-item:nth-child(2) .thumb-img{ width: 74px; }
+.drawer-items .cobake-item:nth-child(3) .thumb-img{ width: 70px; }
+.drawer-items .cobake-item:nth-child(4) .thumb-img{ width: 76px; }
+.drawer-items .cobake-item:nth-child(5) .thumb-img{ width: 72px; }
   user-select:none;
   -webkit-user-drag:none;
 }
