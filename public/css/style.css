@@ -189,33 +189,57 @@ body{
    ICON BUTTON (no frame)
    charabutton / backbutton
 ========================= */
+/* =========================
+   ICON BUTTON (base only)
+   - NO size / NO position
+========================= */
 .icon-btn{
-  position:absolute;
-  width: 72px;
-  height: 72px;
+  position: absolute;
   border: 0;
   padding: 0;
-  background: transparent;   /* 枠・背景なし */
-  border-radius: 0;          /* 角丸なし */
-  box-shadow: none;          /* 影なし */
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
   place-items: center;
   z-index: 200;
 }
 
 .icon-btn img{
-  width: 75px;
-  height: auto;
   display: block;
   user-select: none;
   -webkit-user-drag: none;
 }
 
-.icon-top-right{
+/* =========================
+   CHARABUTTON (ghost)
+   ========================= */
+#ghostBtn{
   top: 50px;
   right: 70px;
+  width: 72px;
+  height: 72px;
 }
-.icon-bottom-right{ bottom: 45px; right: 49px; }
+
+#ghostBtn img{
+  width: 72px;   /* ← ここを自由に変更 */
+  height: auto;
+}
+
+/* =========================
+   BACKBUTTON (menu)
+   ========================= */
+#menuBtn{
+  bottom: 45px;
+  right: 49px;
+  width: 56px;
+  height: 56px;
+}
+
+#menuBtn img{
+  width: 56px;   /* ← ここを自由に変更 */
+  height: auto;
+}
 
 /* dokokana button */
 .dokokana-btn{
@@ -317,29 +341,28 @@ body{
    COBake list items
    - balanced sizes
 ========================= */
+/* =========================
+   Drawer Cobake List
+   - fixed & even layout
+========================= */
 .cobake-item{
   width: 88px;
-  height: auto;
+  height: 88px;          /* 高さを固定して均等化 */
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
-  display:grid;
-  place-items:center;
+  display: grid;
+  place-items: center;
 }
 
-.cobake-item:active{
-  transform: translateY(1px);
-}
-
-/* thumbnails: png as-is */
-/* base size (can be manually tuned) */
 .thumb-img{
-  width: 72px;
-  height: auto;
-  display:block;
-  user-select:none;
-  -webkit-user-drag:none;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;   /* PNG差を吸収 */
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* optional: size variance (manual-friendly) */
