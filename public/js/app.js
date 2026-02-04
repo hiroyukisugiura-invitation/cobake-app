@@ -8,6 +8,19 @@ const startBtn     = document.getElementById("startBtn");
 const startPopArea = document.getElementById("startPopArea");
 const startLayer   = document.getElementById("startLayer");
 
+// START UI は固定（文字入り専用PNGを使用）
+const startBg = document.getElementById("startBg");
+
+// GAME 用：起動時に1色だけ決定（パーソナルカラー）
+const GAME_COLORS = ["green", "blue", "pink", "yellow"];
+const GAME_COLOR =
+  GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
+
+// グローバル共有（後続で使用）
+window.COBakeTheme = {
+  color: GAME_COLOR
+};
+
 // game ui
 const ghostBtn  = document.getElementById("ghostBtn");
 const drawer    = document.getElementById("drawer");
@@ -314,7 +327,7 @@ function buildGameSilhouettes(){
     const bw = finalShape.cw * cellW;
     const bh = finalShape.ch * cellH;
 
-    const box = document.createElement("div");
+const box = document.createElement("div");
     box.className = "silhouette-box";
     box.dataset.id = id;
     box.dataset.filled = "0";
@@ -339,6 +352,9 @@ function buildGameSilhouettes(){
     img.style.height = "100%";
     img.style.objectFit = "contain";
 
+    // 輪郭マスク用（CSSで var(--mask-url) を参照）
+    box.style.setProperty("--mask-url", `url("./assets/img/cobake/monokuro/bk/${id}.png")`);
+
     const rot = pickRot();
 
     // 90/270 のときは縦横が入れ替わるため、ボックス内に収まるように縮小する
@@ -350,6 +366,10 @@ function buildGameSilhouettes(){
 
     // snap判定用にシルエット側の回転を保持
     box.dataset.rot = String(rot);
+
+    // 輪郭なぞり光の整列用（CSSで使用）
+    box.style.setProperty("--sil-rot", `${rot}deg`);
+    box.style.setProperty("--sil-scale", String(scale));
 
     img.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`;
 
@@ -419,9 +439,20 @@ function goStart(){
   hide(popup);
   hide(dokokanaBtn);
 
+  // ===== GAME状態を完全リセット =====
+
+  // 置いたピースを全削除（前回状態の残りを防止）
+  if (stage){
+    stage.querySelectorAll(".piece").forEach((el) => el.remove());
+  }
+
   // シルエット掃除
   const layer = stage ? stage.querySelector(".silhouette-layer") : null;
   if (layer) layer.remove();
+
+  // ゲームUIは非表示に戻す（次回開始時に正しく出す）
+  if (ghostBtn) ghostBtn.hidden = true;
+  if (menuBtn)  menuBtn.hidden  = true;
 
   screenGame.classList.remove("is-active");
   screenStart.classList.add("is-active");
@@ -632,6 +663,9 @@ function createPiece(id, leftPx, topPx){
   el.style.transform = `translate(-50%, -50%) rotate(0deg) scale(1)`;
   el.style.transformOrigin = "50% 50%";
 
+  // 輪郭マスク用（CSSで var(--mask-url) を参照）
+  el.style.setProperty("--mask-url", `url("./assets/img/cobake/monokuro/monokuro/${id}.png")`);
+
   // iOS/PC共通：誤選択・ドラッグ画像防止
   el.style.userSelect = "none";
   el.style.webkitUserSelect = "none";
@@ -787,7 +821,129 @@ document.addEventListener("click", () => {
     return audioCtx;
   }
 
+  function playKachi(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+
+    if (ctx.state === "suspended"){
+      ctx.resume().catch(() => {});
+    }
+
+    const t0 = ctx.currentTime;
+
+    // キラーン!!：上昇ピッチ + きらめき + 余韻
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, t0);
+    master.gain.exponentialRampToValueAtTime(0.42, t0 + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.48);
+    master.connect(ctx.destination);
+
+    function ping(freq, start, dur, peak){
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq, start);
+      o.frequency.exponentialRampToValueAtTime(freq * 1.35, start + Math.min(0.06, dur));
+
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(peak, start + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
+      o.connect(g);
+      g.connect(master);
+
+      o.start(start);
+      o.stop(start + dur);
+
+      o.onended = () => {
+        try { o.disconnect(); } catch(_){}
+        try { g.disconnect(); } catch(_){}
+      };
+    }
+
+    ping(1245, t0 + 0.00, 0.20, 0.28);
+    ping(1660, t0 + 0.05, 0.26, 0.22);
+    ping(2489, t0 + 0.10, 0.18, 0.14);
+
+    // きらめきノイズ
+    const noiseDur = 0.09;
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++){
+      const t = i / data.length;
+      const env = Math.exp(-t * 7.5);
+      data[i] = (Math.random() * 2 - 1) * 0.30 * env;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(3200, t0);
+
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t0);
+    ng.gain.exponentialRampToValueAtTime(0.12, t0 + 0.01);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + noiseDur);
+
+    noise.connect(hp);
+    hp.connect(ng);
+    ng.connect(master);
+
+    noise.start(t0 + 0.015);
+    noise.stop(t0 + 0.015 + noiseDur);
+
+    noise.onended = () => {
+      try { noise.disconnect(); } catch(_){}
+      try { hp.disconnect(); } catch(_){}
+      try { ng.disconnect(); } catch(_){}
+      try { master.disconnect(); } catch(_){}
+    };
+  }
+
   function trySnap(piece){
+    function checkAllFilled(){
+  const boxes = stage ? stage.querySelectorAll(".silhouette-box") : [];
+  if (!boxes.length) return false;
+  for (const b of boxes){
+    if (b.dataset.filled !== "1") return false;
+  }
+  return true;
+}
+
+function playFinishFanfare(){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  if (ctx.state === "suspended"){
+    ctx.resume().catch(() => {});
+  }
+
+  const t0 = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.60);
+  master.connect(ctx.destination);
+
+  const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+  notes.forEach((f, i) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(f, t0 + i * 0.08);
+    g.gain.setValueAtTime(0.0001, t0 + i * 0.08);
+    g.gain.exponentialRampToValueAtTime(0.22, t0 + i * 0.08 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.08 + 0.30);
+    o.connect(g);
+    g.connect(master);
+    o.start(t0 + i * 0.08);
+    o.stop(t0 + i * 0.08 + 0.32);
+  });
+}
+
     if (!piece) return false;
     if (piece.dataset.snapped === "1") return true;
 
@@ -811,80 +967,56 @@ document.addEventListener("click", () => {
     const dy = pieceTop - boxCy;
     const d = Math.hypot(dx, dy);
 
-    // 位置判定（子供向け：少し緩め）
-    const thr = Math.max(16, Math.min(52, Math.min(br.width, br.height) * 0.19));
+    // 子供向け：位置のみで吸着判定（嵌め込みはシルエット側で固定）
+    const thr = Math.max(18, Math.min(64, Math.min(br.width, br.height) * 0.26));
     if (d > thr) return false;
 
-    // サイズ・縦横・回転判定（子供向け：緩和）
-    const baseW = piece.offsetWidth || 0;
-    const baseH = piece.offsetHeight || 0;
-    if (baseW <= 0 || baseH <= 0) return false;
+    // シルエット側にカラーをピッチリ嵌め込む
+    const sil = box.querySelector(".silhouette");
+    const tf = (sil && sil.style && sil.style.transform) ? sil.style.transform : "translate(-50%, -50%)";
 
-    const s = getScale(piece);
-    const effW = baseW * s;
-    const effH = baseH * s;
-
-    const boxW = br.width;
-    const boxH = br.height;
-
-    const tol = 0.30; // ±30%
-    function near(a, b){ return Math.abs(a - b) <= (b * tol); }
-
-    function norm360(v){
-      const x = ((v % 360) + 360) % 360;
-      return x;
+    let filled = box.querySelector(".silhouette-filled");
+    if (!(filled instanceof HTMLImageElement)){
+      filled = document.createElement("img");
+      filled.className = "silhouette-filled";
+      filled.alt = "";
+      filled.draggable = false;
+      filled.style.position = "absolute";
+      filled.style.left = "50%";
+      filled.style.top = "50%";
+      filled.style.width = "100%";
+      filled.style.height = "100%";
+      filled.style.objectFit = "contain";
+      filled.style.pointerEvents = "none";
+      filled.style.zIndex = "90";
+      box.appendChild(filled);
     }
 
-    function angDiff(a, b){
-      const x = Math.abs(norm360(a) - norm360(b));
-      return Math.min(x, 360 - x);
-    }
+    filled.src = `./assets/img/cobake/monokuro/color/${id}.png`;
+    filled.style.transform = tf;
 
-    const targetRot = Number(box.dataset.rot || "0");
-    const pieceRot = getRot(piece);
-
-    // 回転許容（±35°）
-    const rotTol = 35;
-    if (angDiff(pieceRot, targetRot) > rotTol) return false;
-
-    // 回転が 90°ズレのときは縦横が入れ替わるので swap で判定
-    const isQuarterTurn =
-      (Math.abs(angDiff(pieceRot, targetRot) - 90) <= rotTol) ||
-      (Math.abs(angDiff(pieceRot, targetRot) - 270) <= rotTol);
-
-    const directOK = near(effW, boxW) && near(effH, boxH);
-    const swapOK   = near(effW, boxH) && near(effH, boxW);
-
-    if (isQuarterTurn){
-      if (!swapOK) return false;
-    } else {
-      if (!directOK) return false;
-    }
-
-    // snap
-    piece.style.left = `${boxCx}px`;
-    piece.style.top  = `${boxCy}px`;
-
+    box.dataset.filled = "1";
     piece.dataset.snapped = "1";
     piece.dataset.locked = "1";
-    piece.classList.add("is-locked");
-    box.dataset.filled = "1";
 
-    // 迷いヒント停止
+    // ヒント停止（シルエット側のループも止める）
     clearHintTimer(piece);
 
-    // ロックしたらハンドルも消す
-    setHandlesVisible(piece, false);
-
-    // カラーに差し替え
-    const img = piece.querySelector(".piece-img");
-    if (img){
-      img.src = `./assets/img/cobake/monokuro/color/${id}.png`;
-    }
-
+    // 効果
     playKachi();
-    sparklePiece(piece);
     sparkleSilhouette(box);
+
+    // 動かしていたピースは消す（以後動かない）
+    piece.remove();
+
+    // 全部ハマったらご褒美
+    if (checkAllFilled()){
+      document.body.classList.add("is-complete");
+      playFinishFanfare();
+      window.setTimeout(() => {
+        document.body.classList.remove("is-complete");
+      }, 600);
+    }
 
     return true;
   }
@@ -1006,81 +1138,7 @@ document.addEventListener("click", () => {
     window.setTimeout(() => box.classList.remove("is-correct"), 700);
   }
 
-  function trySnap(piece){
-    if (!piece) return false;
-    if (piece.dataset.snapped === "1") return true;
-
-    const id = piece.dataset.id || "";
-    if (!id) return false;
-
-    const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
-    if (!(box instanceof HTMLElement)) return false;
-    if (box.dataset.filled === "1") return false;
-
-    const br = box.getBoundingClientRect();
-    const sr = stageRect();
-
-    const boxCx = (br.left - sr.left) + br.width / 2;
-    const boxCy = (br.top - sr.top) + br.height / 2;
-
-    const pieceLeft = Number.parseFloat(piece.style.left) || 0;
-    const pieceTop  = Number.parseFloat(piece.style.top)  || 0;
-
-    const dx = pieceLeft - boxCx;
-    const dy = pieceTop - boxCy;
-    const d = Math.hypot(dx, dy);
-
-    // 位置判定（少し厳しめ）
-    const thr = Math.max(14, Math.min(44, Math.min(br.width, br.height) * 0.16));
-    if (d > thr) return false;
-
-    // サイズ・縦横・回転判定
-    const baseW = piece.offsetWidth || 0;
-    const baseH = piece.offsetHeight || 0;
-    if (baseW <= 0 || baseH <= 0) return false;
-
-    const s = getScale(piece);
-    const effW = baseW * s;
-    const effH = baseH * s;
-
-    const boxW = br.width;
-    const boxH = br.height;
-
-    const tol = 0.18; // ±18%
-    function near(a, b){ return Math.abs(a - b) <= (b * tol); }
-
-    const directOK = near(effW, boxW) && near(effH, boxH);
-    const swapOK   = near(effW, boxH) && near(effH, boxW);
-
-    if (!directOK && !swapOK) return false;
-
-    // swap の場合は 90度系の回転が必須（縦横が合ってないのにOK防止）
-    if (swapOK && !directOK){
-      const r0 = ((getRot(piece) % 360) + 360) % 360;
-      const is90 = (Math.min(Math.abs(r0 - 90), Math.abs(r0 - 270)) <= 25);
-      if (!is90) return false;
-    }
-
-    // snap
-    piece.style.left = `${boxCx}px`;
-    piece.style.top  = `${boxCy}px`;
-
-    piece.dataset.snapped = "1";
-    piece.dataset.locked = "1";
-    piece.classList.add("is-locked");
-    box.dataset.filled = "1";
-
-    clearHintTimer(piece);
-
-    // ロックしたらハンドルも消す
-    setHandlesVisible(piece, false);
-
-    playKachi();
-    sparklePiece(piece);
-    sparkleSilhouette(box);
-
-    return true;
-  }
+  // duplicate trySnap removed (keep the earlier trySnap that includes color-swap / hint-loop handling)
 
   // ===== Drawer Drag & Drop =====
   window.startDragFromDrawer = function(e, id){
@@ -1302,10 +1360,54 @@ document.addEventListener("click", () => {
       return;
     }
 
-    // 1 pointer => move
+    // 1 pointer => move (+ magnet preview + hint decay)
     const p = localXY(e.clientX, e.clientY);
-    activeEl.style.left = `${p.x + dragOffset.dx}px`;
-    activeEl.style.top  = `${p.y + dragOffset.dy}px`;
+    let nx = p.x + dragOffset.dx;
+    let ny = p.y + dragOffset.dy;
+
+    if (activeEl.dataset.snapped !== "1" && activeEl.dataset.locked !== "1"){
+      const id = activeEl.dataset.id || "";
+      if (id){
+        const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
+        if (box instanceof HTMLElement && box.dataset.filled !== "1"){
+          const br = box.getBoundingClientRect();
+          const sr = stageRect();
+
+          const boxCx = (br.left - sr.left) + br.width / 2;
+          const boxCy = (br.top - sr.top) + br.height / 2;
+
+          const dx = boxCx - nx;
+          const dy = boxCy - ny;
+          const dd = Math.hypot(dx, dy);
+
+          const thr = Math.max(16, Math.min(52, Math.min(br.width, br.height) * 0.19));
+          const magR = thr * 1.6;
+
+          // hint decay: 遠いなら停止 / 近いなら継続（既に点灯中のときのみ）
+          if (box.classList.contains("is-hint-loop")){
+            if (dd > magR * 1.15){
+              box.classList.remove("is-hint-loop");
+            }
+          } else {
+            // 近づき直したら再点灯（子供向けに分かりやすく）
+            if (dd < magR * 0.92){
+              box.classList.add("is-hint-loop");
+            }
+          }
+
+          // magnet preview: near correct silhouette, pull 1-2px toward center
+          if (dd > 0.001 && dd < magR){
+            const t = 1 - (dd / magR);          // 0..1
+            const pull = Math.min(2, 2 * t);    // 0..2px
+            nx += (dx / dd) * pull;
+            ny += (dy / dd) * pull;
+          }
+        }
+      }
+    }
+
+    activeEl.style.left = `${nx}px`;
+    activeEl.style.top  = `${ny}px`;
     applyTransform(activeEl);
   });
 

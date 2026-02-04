@@ -15,6 +15,29 @@ body{
   -webkit-tap-highlight-color: transparent;
 }
 
+/* completion aura */
+body.is-complete::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255,255,255,0.25) 0%,
+      rgba(255,255,255,0.12) 30%,
+      rgba(255,255,255,0.00) 60%
+    );
+  animation: cobakeCompleteAura 600ms ease-out both;
+  z-index: 9999;
+}
+
+@keyframes cobakeCompleteAura{
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .app{
   height:100%;
   display:grid;
@@ -169,6 +192,11 @@ body{
   object-fit:cover;
   display:block;
   z-index: 0;
+
+  /* === LOCK BACKBOARD === */
+  pointer-events: none;       /* 誤タップ・誤ドラッグ完全防止 */
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* silhouette layer */
@@ -196,6 +224,100 @@ body{
   position: relative; /* for pseudo element */
 }
 
+/* pre-snap: stronger outline shimmer (JS toggles .is-pre-snap) */
+.silhouette-box.is-pre-snap::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100%;
+  height:100%;
+  transform: translate(-50%, -50%) rotate(var(--sil-rot, 0deg)) scale(var(--sil-scale, 1));
+  transform-origin: 50% 50%;
+  pointer-events:none;
+
+  background: linear-gradient(
+    110deg,
+    rgba(255,255,255,0.00) 0%,
+    rgba(255,255,255,0.00) 30%,
+    rgba(255,255,255,1.00) 48%,
+    rgba(255,255,255,0.00) 66%,
+    rgba(255,255,255,0.00) 100%
+  );
+  background-size: 240% 240%;
+  background-position: -140% 50%;
+  animation:
+    cobakeOutlineSweep 620ms linear infinite,
+    cobakePreSnapPulse 150ms ease-out both;
+
+  -webkit-mask-image: var(--mask-url);
+  mask-image: var(--mask-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+
+  filter:
+    drop-shadow(0 0 14px rgba(255,255,255,0.75))
+    drop-shadow(0 0 28px rgba(255,255,255,0.35));
+  opacity: 1;
+}
+
+@keyframes cobakePreSnapPulse{
+  0%   { opacity: 0.0; transform: translate(-50%, -50%) rotate(var(--sil-rot, 0deg)) scale(calc(var(--sil-scale, 1) * 0.995)); }
+  60%  { opacity: 1.0; transform: translate(-50%, -50%) rotate(var(--sil-rot, 0deg)) scale(calc(var(--sil-scale, 1) * 1.010)); }
+  100% { opacity: 0.92; transform: translate(-50%, -50%) rotate(var(--sil-rot, 0deg)) scale(calc(var(--sil-scale, 1) * 1.000)); }
+}
+
+/* hint loop: outline shimmer following PNG alpha (subject-like line) */
+.silhouette-box.is-hint-loop::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100%;
+  height:100%;
+  transform: translate(-50%, -50%) rotate(var(--sil-rot, 0deg)) scale(var(--sil-scale, 1));
+  transform-origin: 50% 50%;
+  pointer-events:none;
+
+  /* moving highlight */
+  background: linear-gradient(
+    110deg,
+    rgba(255,255,255,0.00) 0%,
+    rgba(255,255,255,0.00) 35%,
+    rgba(255,255,255,0.95) 48%,
+    rgba(255,255,255,0.00) 62%,
+    rgba(255,255,255,0.00) 100%
+  );
+  background-size: 220% 220%;
+  background-position: -120% 50%;
+  animation: cobakeOutlineSweep 980ms linear infinite;
+
+  /* alpha mask: use silhouette PNG */
+  -webkit-mask-image: var(--mask-url);
+  mask-image: var(--mask-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+
+  /* edge-like glow */
+  filter:
+    drop-shadow(0 0 10px rgba(255,255,255,0.55))
+    drop-shadow(0 0 20px rgba(255,255,255,0.25));
+  opacity: 0.95;
+}
+
+@keyframes cobakeOutlineSweep{
+  0%   { background-position: -120% 50%; }
+  100% { background-position:  220% 50%; }
+}
+
 /* hint: subtle glow pulse */
 .silhouette-box.is-hint::after{
   content:"";
@@ -215,7 +337,11 @@ body{
   100% { opacity: 0; transform: scale(1.010); filter: blur(0.2px); }
 }
 
-/* correct: sparkle ring */
+/* correct: snap nudge + sparkle ring (quick assurance) */
+.silhouette-box.is-correct{
+  animation: cobakeSnapNudge 90ms ease-out both;
+}
+
 .silhouette-box.is-correct::after{
   content:"";
   position:absolute;
@@ -224,14 +350,32 @@ body{
   pointer-events:none;
   box-shadow:
     0 0 0 0 rgba(255,255,255,0.0),
-    0 0 28px 10px rgba(255,255,255,0.28);
-  animation: cobakeCorrectSparkle 700ms ease-out both;
+    0 0 34px 12px rgba(255,255,255,0.36);
+  animation: cobakeCorrectSparkle 260ms ease-out both;
+}
+
+@keyframes cobakeSnapNudge{
+  0%   { transform: translate(0, 0) scale(1); }
+  45%  { transform: translate(0.5px, -0.5px) scale(1.002); }
+  100% { transform: translate(0, 0) scale(1); }
 }
 
 @keyframes cobakeCorrectSparkle{
-  0%   { opacity: 0; transform: scale(0.98); }
-  25%  { opacity: 1; transform: scale(1.00); }
-  100% { opacity: 0; transform: scale(1.04); }
+  0%   { opacity: 0; transform: scale(0.99); }
+  35%  { opacity: 1; transform: scale(1.01); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+/* filled color inside silhouette (snap settle) */
+.silhouette-filled{
+  animation: cobakeFilledSettle 180ms ease-out both;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,.10));
+}
+
+@keyframes cobakeFilledSettle{
+  0%   { transform: translate(-50%, -50%) scale(0.99); }
+  60%  { transform: translate(-50%, -50%) scale(1.01); }
+  100% { transform: translate(-50%, -50%) scale(1.00); }
 }
 
 /* piece correct outline */
@@ -357,6 +501,60 @@ body{
 .piece:active{
   cursor: grabbing;
   filter: drop-shadow(0 12px 24px rgba(0,0,0,.24));
+}
+
+.piece:active::after,
+.piece.is-dragging::after{
+  content:"";
+  position:absolute;
+  inset: -14px;
+  pointer-events:none;
+
+  /* moving highlight */
+  background: linear-gradient(
+    110deg,
+    rgba(255,255,255,0.00) 0%,
+    rgba(255,255,255,0.00) 35%,
+    rgba(255,255,255,0.95) 48%,
+    rgba(255,255,255,0.00) 62%,
+    rgba(255,255,255,0.00) 100%
+  );
+  background-size: 220% 220%;
+  background-position: -120% 50%;
+  animation: cobakeOutlineSweep 880ms linear infinite;
+
+  /* alpha mask: use piece PNG */
+  -webkit-mask-image: var(--mask-url);
+  mask-image: var(--mask-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+
+  /* edge-like glow */
+  filter:
+    drop-shadow(0 0 10px rgba(255,255,255,0.55))
+    drop-shadow(0 0 20px rgba(255,255,255,0.25));
+  opacity: 0.95;
+}
+
+.piece:active::after{
+  content:"";
+  position:absolute;
+  inset: -8px;
+  border-radius: 18px;
+  pointer-events:none;
+  box-shadow:
+    0 0 0 0 rgba(255,255,255,0.0),
+    0 0 18px 8px rgba(255,255,255,0.22);
+  animation: cobakeGrabGlow 520ms ease-in-out infinite alternate;
+}
+
+@keyframes cobakeGrabGlow{
+  from { opacity: 0.35; transform: scale(0.995); }
+  to   { opacity: 0.85; transform: scale(1.010); }
 }
 
 /* keep existing hook (if JS adds class later) */
