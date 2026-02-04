@@ -440,7 +440,7 @@ function buildCobakeList(){
   const list = Array.isArray(window.COBAKE_DATA) ? [...window.COBAKE_DATA] : [];
   cobakeList.innerHTML = "";
 
-  // 毎回ランダム順（右枠内もランダム）
+  // 右枠内もランダム順（既存方針を維持）
   for (let i = list.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
@@ -459,18 +459,23 @@ function buildCobakeList(){
            draggable="false" />
     `;
 
-    btn.addEventListener("click", (e) => {
+    // クリック選択ではなく「ドラッグ→ドロップ」にする
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      spawnPiece(c.id);
+      startDragFromDrawer(e, c.id);
     });
 
     cobakeList.appendChild(btn);
   });
 }
 
-function spawnPiece(id){
-  const old = stage.querySelector(".piece");
-  if (old) old.remove();
+/**
+ * 複数ピース対応：削除しない
+ * drop位置指定可
+ */
+function createPiece(id, leftPx, topPx){
+  if (!stage) return null;
 
   const img = document.createElement("img");
   img.className = "piece";
@@ -478,7 +483,24 @@ function spawnPiece(id){
   img.alt = id;
   img.draggable = false;
 
+  // 状態（拡大・回転）
+  img.dataset.scale = "1";
+  img.dataset.rot = "0";
+
+  img.style.position = "absolute";
+  img.style.left = `${leftPx}px`;
+  img.style.top  = `${topPx}px`;
+  img.style.transform = `translate(-50%, -50%) rotate(0deg) scale(1)`;
+
   stage.appendChild(img);
+  return img;
+}
+
+// 互換：既存呼び出しが残っていても中心に出す
+function spawnPiece(id){
+  if (!stage) return;
+  const r = stage.getBoundingClientRect();
+  createPiece(id, r.width * 0.5, r.height * 0.5);
 }
 
 // =========================
@@ -519,26 +541,122 @@ document.addEventListener("click", () => {
 });
 
 // =========================
-// Drag move for .piece (Pointer Events)
+// Drag/Pinch/Rotate/Delete for .piece (Pointer Events)
 // =========================
-(function enablePieceDrag(){
+(function enablePieceGestures(){
   if (!stage) return;
 
-  let draggingEl = null;
-  let startX = 0;
-  let startY = 0;
-  let elStartLeft = 0;
-  let elStartTop = 0;
+  // drawer drag ghost
+  let dragGhost = null;
+  let draggingId = null;
 
-  function getLocalPoint(e){
-    const r = stage.getBoundingClientRect();
-    return {
-      x: e.clientX - r.left,
-      y: e.clientY - r.top,
-      w: r.width,
-      h: r.height
-    };
+  // piece gesture state
+  let activeEl = null;
+  const pts = new Map(); // pointerId -> {x,y}
+  let startDist = 0;
+  let startAng = 0;
+  let startScale = 1;
+  let startRot = 0;
+  let dragOffset = { dx: 0, dy: 0 };
+
+  // double tap delete (touch/pen)
+  const lastTap = new WeakMap(); // el -> {t, x, y}
+
+  function stageRect(){ return stage.getBoundingClientRect(); }
+
+  function localXY(clientX, clientY){
+    const r = stageRect();
+    return { x: clientX - r.left, y: clientY - r.top, w: r.width, h: r.height };
   }
+
+  function getScale(el){
+    const v = Number(el.dataset.scale);
+    return Number.isFinite(v) ? v : 1;
+  }
+  function getRot(el){
+    const v = Number(el.dataset.rot);
+    return Number.isFinite(v) ? v : 0;
+  }
+  function applyTransform(el){
+    const s = getScale(el);
+    const r = getRot(el);
+    el.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
+  }
+
+  function dist(a, b){
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.hypot(dx, dy);
+  }
+  function angle(a, b){
+    return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+
+  // ===== Drawer Drag & Drop =====
+  window.startDragFromDrawer = function(e, id){
+    draggingId = id;
+
+    // ghost element
+    if (dragGhost) dragGhost.remove();
+    dragGhost = document.createElement("img");
+    dragGhost.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
+    dragGhost.alt = "";
+    dragGhost.draggable = false;
+    dragGhost.style.position = "fixed";
+    dragGhost.style.left = `${e.clientX}px`;
+    dragGhost.style.top = `${e.clientY}px`;
+    dragGhost.style.transform = "translate(-50%, -50%)";
+    dragGhost.style.width = "96px";
+    dragGhost.style.height = "auto";
+    dragGhost.style.pointerEvents = "none";
+    dragGhost.style.zIndex = "9999";
+    dragGhost.style.opacity = "0.92";
+    document.body.appendChild(dragGhost);
+
+    // capture pointer on button
+    const t = e.target;
+    if (t && t.setPointerCapture) t.setPointerCapture(e.pointerId);
+
+    function move(ev){
+      if (!dragGhost) return;
+      dragGhost.style.left = `${ev.clientX}px`;
+      dragGhost.style.top = `${ev.clientY}px`;
+    }
+
+    function end(ev){
+      document.removeEventListener("pointermove", move, true);
+      document.removeEventListener("pointerup", end, true);
+      document.removeEventListener("pointercancel", end, true);
+
+      if (dragGhost){ dragGhost.remove(); dragGhost = null; }
+
+      if (!stage || !draggingId) { draggingId = null; return; }
+
+      const r = stageRect();
+      const inside = (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom);
+
+      if (inside){
+        const p = localXY(ev.clientX, ev.clientY);
+        createPiece(draggingId, p.x, p.y);
+      }
+
+      draggingId = null;
+    }
+
+    document.addEventListener("pointermove", move, true);
+    document.addEventListener("pointerup", end, true);
+    document.addEventListener("pointercancel", end, true);
+  };
+
+  // ===== Piece gestures =====
+  stage.addEventListener("dblclick", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    if (!t.classList.contains("piece")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    t.remove();
+  });
 
   stage.addEventListener("pointerdown", (e) => {
     const t = e.target;
@@ -548,52 +666,94 @@ document.addEventListener("click", () => {
     e.preventDefault();
     e.stopPropagation();
 
-    draggingEl = t;
-    draggingEl.classList.add("is-dragging");
-    draggingEl.setPointerCapture(e.pointerId);
+    activeEl = t;
+    activeEl.setPointerCapture(e.pointerId);
 
-    const rectStage = stage.getBoundingClientRect();
-    const rectEl = draggingEl.getBoundingClientRect();
+    // double tap (touch/pen)
+    const now = Date.now();
+    const prev = lastTap.get(activeEl);
+    if (prev && (now - prev.t) < 320){
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      if ((dx*dx + dy*dy) < (18*18)){
+        activeEl.remove();
+        lastTap.delete(activeEl);
+        activeEl = null;
+        pts.clear();
+        return;
+      }
+    }
+    lastTap.set(activeEl, { t: now, x: e.clientX, y: e.clientY });
 
-    const currentLeft = rectEl.left - rectStage.left;
-    const currentTop  = rectEl.top  - rectStage.top;
+    // register pointer
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    draggingEl.style.transform = "none";
-    draggingEl.style.left = `${currentLeft}px`;
-    draggingEl.style.top  = `${currentTop}px`;
+    // prepare drag offset for 1-finger move
+    const p = localXY(e.clientX, e.clientY);
+    const curLeft = Number.parseFloat(activeEl.style.left) || p.x;
+    const curTop  = Number.parseFloat(activeEl.style.top)  || p.y;
+    dragOffset = { dx: curLeft - p.x, dy: curTop - p.y };
 
-    elStartLeft = currentLeft;
-    elStartTop  = currentTop;
-    startX = e.clientX;
-    startY = e.clientY;
+    // prepare pinch/rotate baseline if 2 pointers
+    if (pts.size === 2){
+      const arr = Array.from(pts.values());
+      startDist = dist(arr[0], arr[1]);
+      startAng = angle(arr[0], arr[1]);
+      startScale = getScale(activeEl);
+      startRot = getRot(activeEl);
+    }
   });
 
   stage.addEventListener("pointermove", (e) => {
-    if (!draggingEl) return;
+    if (!activeEl) return;
+    if (!pts.has(e.pointerId)) return;
+
     e.preventDefault();
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    const local = getLocalPoint(e);
-    const elW = draggingEl.offsetWidth;
-    const elH = draggingEl.offsetHeight;
+    // 2 pointers => pinch/rotate
+    if (pts.size >= 2){
+      const arr = Array.from(pts.values());
+      const d = dist(arr[0], arr[1]);
+      const a = angle(arr[0], arr[1]);
 
-    const nextLeft = clamp(elStartLeft + dx, 0, local.w - elW);
-    const nextTop  = clamp(elStartTop  + dy, 0, local.h - elH);
+      if (startDist > 0){
+        const nextScale = Math.max(0.2, Math.min(6, startScale * (d / startDist)));
+        const nextRot = startRot + ((a - startAng) * 180 / Math.PI);
 
-    draggingEl.style.left = `${nextLeft}px`;
-    draggingEl.style.top  = `${nextTop}px`;
+        activeEl.dataset.scale = String(nextScale);
+        activeEl.dataset.rot = String(nextRot);
+        applyTransform(activeEl);
+      }
+      return;
+    }
+
+    // 1 pointer => move
+    const p = localXY(e.clientX, e.clientY);
+    activeEl.style.left = `${p.x + dragOffset.dx}px`;
+    activeEl.style.top  = `${p.y + dragOffset.dy}px`;
+    applyTransform(activeEl);
   });
 
-  function endDrag(){
-    if (!draggingEl) return;
-    draggingEl.classList.remove("is-dragging");
-    draggingEl = null;
+  function endPointer(e){
+    if (!activeEl) return;
+    if (pts.has(e.pointerId)) pts.delete(e.pointerId);
+
+    if (pts.size < 2){
+      startDist = 0;
+      startAng = 0;
+      startScale = getScale(activeEl);
+      startRot = getRot(activeEl);
+    }
+
+    if (pts.size === 0){
+      activeEl = null;
+    }
   }
 
-  stage.addEventListener("pointerup", endDrag);
-  stage.addEventListener("pointercancel", endDrag);
+  stage.addEventListener("pointerup", endPointer);
+  stage.addEventListener("pointercancel", endPointer);
 })();
 
 // =========================
