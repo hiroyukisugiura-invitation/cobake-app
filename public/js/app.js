@@ -1239,6 +1239,15 @@ overlay.addEventListener("click", (e) => {
     box.classList.remove("is-hint-loop");
   }
 
+    function cancelHintTimerOnly(piece){
+    if (!piece) return;
+    const id = hintTimers.get(piece);
+    if (typeof id === "number"){
+      window.clearTimeout(id);
+    }
+    hintTimers.delete(piece);
+  }
+
   function flashSilhouetteHint(id){
     if (!id) return;
     const box = stage.querySelector(`.silhouette-box[data-id="${id}"]`);
@@ -1254,7 +1263,17 @@ overlay.addEventListener("click", (e) => {
     if (piece.dataset.snapped === "1") return;
     if (piece.dataset.locked === "1") return;
 
-    clearHintTimer(piece);
+    const pid = piece.dataset.id || "";
+    if (pid){
+      const box0 = stage.querySelector(`.silhouette-box[data-id="${pid}"]`);
+      // すでにラダーが出ているなら、タイマーも表示も触らない（止めない）
+      if (box0 instanceof HTMLElement && box0.classList.contains("is-hint-loop")){
+        return;
+      }
+    }
+
+    // タイマーだけを更新（表示は消さない）
+    cancelHintTimerOnly(piece);
 
     const tid = window.setTimeout(() => {
       if (!stage) return;
@@ -1263,7 +1282,7 @@ overlay.addEventListener("click", (e) => {
       if (piece.dataset.locked === "1") return;
 
       const id = piece.dataset.id || "";
-      flashSilhouetteHint(id);
+      flashSilhouetteHint(id); // ここで is-hint-loop を付与
     }, 2200);
 
     hintTimers.set(piece, tid);

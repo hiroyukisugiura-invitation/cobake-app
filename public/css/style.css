@@ -283,9 +283,10 @@ body.is-complete::after{
   transform-origin: 50% 50%;
   pointer-events:none;
 
-  /* ★ 必ずシルエットより前に出す */
+  /* ★必ずシルエットより前面に出す */
   z-index: 95;
 
+  /* moving highlight */
   background: linear-gradient(
     110deg,
     rgba(255,255,255,0.00) 0%,
@@ -298,6 +299,7 @@ body.is-complete::after{
   background-position: -120% 50%;
   animation: cobakeOutlineSweep 980ms linear infinite;
 
+  /* alpha mask: use silhouette PNG */
   -webkit-mask-image: var(--mask-url);
   mask-image: var(--mask-url);
   -webkit-mask-repeat: no-repeat;
@@ -307,6 +309,7 @@ body.is-complete::after{
   -webkit-mask-size: contain;
   mask-size: contain;
 
+  /* edge-like glow */
   filter:
     drop-shadow(0 0 12px rgba(255,255,255,0.65))
     drop-shadow(0 0 24px rgba(255,255,255,0.35));
@@ -715,7 +718,7 @@ body.is-complete::after{
 .cobake-item[data-id="coin"]   .thumb-img{ width: 40px; }
 .cobake-item[data-id="wonka"]  .thumb-img{ width: 70px; }
 .cobake-item[data-id="coron"]  .thumb-img{ width: 62px; }
-.cobake-item[data-id="musshu"] .thumb-img{ width: 60px; }72p
+.cobake-item[data-id="musshu"] .thumb-img{ width: 60px; }
 
 /* =========================
    MENU POPUP (kyuukei / yameru)
