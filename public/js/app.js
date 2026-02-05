@@ -811,6 +811,58 @@ document.addEventListener("click", () => {
   // hint timers (piece -> timeoutId)
   const hintTimers = new WeakMap();
 
+  // =========================
+  // Sound (File priority + WebAudio fallback)
+  // =========================
+  // window.COBAKE_SOUND = {
+  //   snap:     { src: "./sounds/snap.mp3", volume: 0.9, enabled: true },
+  //   complete: { src: "./sounds/complete.mp3", volume: 1.0, enabled: true }
+  // };
+  const SOUND_DEFAULT = {
+    snap:     { src: "", volume: 1.0, enabled: true },
+    complete: { src: "", volume: 1.0, enabled: true }
+  };
+
+  const audioCache = new Map(); // key -> HTMLAudioElement
+
+  function getSoundConf(key){
+    const u = (window.COBAKE_SOUND && typeof window.COBAKE_SOUND === "object") ? window.COBAKE_SOUND : {};
+    const base = SOUND_DEFAULT[key] || { src:"", volume:1.0, enabled:true };
+    const o = u[key] || {};
+    return {
+      src: (typeof o.src === "string") ? o.src : base.src,
+      volume: (typeof o.volume === "number") ? o.volume : base.volume,
+      enabled: (typeof o.enabled === "boolean") ? o.enabled : base.enabled
+    };
+  }
+
+  function playSoundFile(key){
+    const conf = getSoundConf(key);
+    if (!conf.enabled) return false;
+    if (!conf.src) return false;
+
+    let a = audioCache.get(key);
+    if (!(a instanceof HTMLAudioElement)){
+      a = new Audio(conf.src);
+      a.preload = "auto";
+      audioCache.set(key, a);
+    } else {
+      if (a.src && !a.src.endsWith(conf.src)){
+        a.src = conf.src;
+      }
+    }
+
+    a.volume = Math.max(0, Math.min(1, conf.volume));
+
+    try { a.currentTime = 0; } catch(_){}
+
+    const p = a.play();
+    if (p && typeof p.catch === "function"){
+      p.catch(() => {});
+    }
+    return true;
+  }
+
   // tiny click sound (no asset)
   let audioCtx = null;
   function ensureAudio(){
@@ -822,6 +874,10 @@ document.addEventListener("click", () => {
   }
 
   function playKachi(){
+    // 1) file priority
+    if (playSoundFile("snap")) return;
+
+    // 2) WebAudio fallback
     const ctx = ensureAudio();
     if (!ctx) return;
 
@@ -903,6 +959,47 @@ document.addEventListener("click", () => {
     };
   }
 
+    ping(1245, t0 + 0.00, 0.20, 0.28);
+    ping(1660, t0 + 0.05, 0.26, 0.22);
+    ping(2489, t0 + 0.10, 0.18, 0.14);
+
+    // きらめきノイズ
+    const noiseDur = 0.09;
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++){
+      const t = i / data.length;
+      const env = Math.exp(-t * 7.5);
+      data[i] = (Math.random() * 2 - 1) * 0.30 * env;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(3200, t0);
+
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t0);
+    ng.gain.exponentialRampToValueAtTime(0.12, t0 + 0.01);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + noiseDur);
+
+    noise.connect(hp);
+    hp.connect(ng);
+    ng.connect(master);
+
+    noise.start(t0 + 0.015);
+    noise.stop(t0 + 0.015 + noiseDur);
+
+    noise.onended = () => {
+      try { noise.disconnect(); } catch(_){}
+      try { hp.disconnect(); } catch(_){}
+      try { ng.disconnect(); } catch(_){}
+      try { master.disconnect(); } catch(_){}
+    };
+  }
+
   function trySnap(piece){
     function checkAllFilled(){
   const boxes = stage ? stage.querySelectorAll(".silhouette-box") : [];
@@ -914,6 +1011,10 @@ document.addEventListener("click", () => {
 }
 
 function playFinishFanfare(){
+  // 1) file priority
+  if (playSoundFile("complete")) return;
+
+  // 2) WebAudio fallback
   const ctx = ensureAudio();
   if (!ctx) return;
 
