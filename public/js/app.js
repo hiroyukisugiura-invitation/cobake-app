@@ -1003,6 +1003,72 @@ document.addEventListener("click", () => {
     });
   }
 
+    function showHazimekaraOverlay(){
+    if (!stage) return;
+
+    // 二重表示防止
+    if (stage.querySelector(".hazimekara-overlay")) return;
+
+    // 他UIは閉じる
+    hide(drawer);
+    hide(popup);
+
+    // ステージ全面のオーバーレイ
+    const overlay = document.createElement("button");
+    overlay.type = "button";
+    overlay.className = "hazimekara-overlay";
+    overlay.setAttribute("aria-label", "はじめから");
+    overlay.style.position = "absolute";
+    overlay.style.inset = "0";
+    overlay.style.border = "0";
+    overlay.style.padding = "0";
+    overlay.style.margin = "0";
+    overlay.style.background = "transparent";
+    overlay.style.cursor = "pointer";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "grid";
+    overlay.style.placeItems = "center";
+
+    const img = document.createElement("img");
+    img.src = "./button/hazimekara.png";
+    img.alt = "はじめから";
+    img.draggable = false;
+    img.style.width = "min(720px, 30%)";
+    img.style.height = "auto";
+    img.style.display = "block";
+    img.style.userSelect = "none";
+    img.style.webkitUserDrag = "none";
+    img.style.filter = "drop-shadow(0 18px 36px rgba(0,0,0,.22))";
+
+    overlay.appendChild(img);
+
+overlay.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // オーバーレイ削除
+  overlay.remove();
+
+  // ゲーム状態を初期化（スタート画面には戻らない）
+  hide(drawer);
+  hide(popup);
+  hide(dokokanaBtn);
+
+  // 既存シルエットを一旦削除
+  const layer = stage.querySelector(".silhouette-layer");
+  if (layer) layer.remove();
+
+  // シルエット再生成
+  buildGameSilhouettes();
+
+  // 「コバケどこかな？」を表示して、どこタップでも開始状態へ
+  show(dokokanaBtn);
+  armGameStartTap();
+});
+
+    stage.appendChild(overlay);
+  }
+
   function trySnap(piece){
     if (!piece) return false;
     if (piece.dataset.snapped === "1") return true;
@@ -1057,8 +1123,8 @@ document.addEventListener("click", () => {
     // CSSのアニメーションが transform を上書きして「回転が戻る」事故を防ぐ
     filled.style.animation = "none";
 
-    // silhouette の transform をそのままコピー（逆さまなら逆さまのまま）
-    filled.style.transform = tf;
+    // silhouette の transform をベースに、カラーだけ少し大きくして黒のはみ出しを防ぐ
+    filled.style.transform = `${tf} scale(1.02)`;
 
     box.dataset.filled = "1";
     piece.dataset.snapped = "1";
@@ -1074,13 +1140,11 @@ document.addEventListener("click", () => {
     // 動かしていたピースは消す（以後動かない）
     piece.remove();
 
-    // 全部ハマったらご褒美
+    // 全部ハマったら：hazimekara.png を中央表示 → タップでリロード
     if (checkAllFilled()){
       document.body.classList.add("is-complete");
       playFinishFanfare();
-      window.setTimeout(() => {
-        document.body.classList.remove("is-complete");
-      }, 600);
+      showHazimekaraOverlay();
     }
 
     return true;
