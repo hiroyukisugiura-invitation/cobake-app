@@ -11,15 +11,30 @@ const startLayer   = document.getElementById("startLayer");
 // START UI は固定（文字入り専用PNGを使用）
 const startBg = document.getElementById("startBg");
 
-// GAME 用：起動時に1色だけ決定（パーソナルカラー）
+// GAME 用：ゲーム開始の度に1色決定（毎回変える）
 const GAME_COLORS = ["green", "blue", "pink", "yellow"];
-const GAME_COLOR =
-  GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
 
 // グローバル共有（後続で使用）
 window.COBakeTheme = {
-  color: GAME_COLOR
+  color: "green"
 };
+
+function applyGameTheme(){
+  const c = GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
+  window.COBakeTheme.color = c;
+
+  // バックカラー（ベビー系）
+  const map = {
+    green:  "#baf7b8",
+    blue:   "#b9e6ff",
+    pink:   "#ffd0e4",
+    yellow: "#fff2a6"
+  };
+
+  if (stage){
+    stage.style.backgroundColor = map[c] || "#baf7b8";
+  }
+}
 
 // game ui
 const ghostBtn  = document.getElementById("ghostBtn");
@@ -421,6 +436,9 @@ function goGame(){
   // 右上オバケ/右下× は「ゲーム開始タップ後」に出す
   if (ghostBtn) ghostBtn.hidden = true;
   if (menuBtn)  menuBtn.hidden  = true;
+
+  // ゲーム開始の度にテーマ色を適用
+  applyGameTheme();
 
   // スクショ3（シルエット：画面いっぱい）
   buildGameSilhouettes();
@@ -1512,17 +1530,8 @@ overlay.addEventListener("click", (e) => {
           const thr = Math.max(16, Math.min(52, Math.min(br.width, br.height) * 0.19));
           const magR = thr * 1.6;
 
-          // hint decay: 遠いなら停止 / 近いなら継続（既に点灯中のときのみ）
-          if (box.classList.contains("is-hint-loop")){
-            if (dd > magR * 1.15){
-              box.classList.remove("is-hint-loop");
-            }
-          } else {
-            // 近づき直したら再点灯（子供向けに分かりやすく）
-            if (dd < magR * 0.92){
-              box.classList.add("is-hint-loop");
-            }
-          }
+          // hint: 一度出たら「ハマるか消すまで」止めない（距離で外さない）
+          // ※停止は clearHintTimer(piece) でのみ行う
 
           // magnet preview: near correct silhouette, pull 1-2px toward center
           if (dd > 0.001 && dd < magR){
