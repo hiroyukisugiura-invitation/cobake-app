@@ -797,8 +797,8 @@ body.is-complete::after{
   top: 50%;
   transform: translate(-50%, -50%);
 
-  width: min(980px, 92vw);
-  height: min(86vh, 820px);
+  width: min(686px, 64vw);   /* 980px × 0.7 */
+  height: min(60vh, 574px);  /* 820px × 0.7 */
 
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.28);
