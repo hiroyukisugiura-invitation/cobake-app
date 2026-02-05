@@ -283,7 +283,9 @@ body.is-complete::after{
   transform-origin: 50% 50%;
   pointer-events:none;
 
-  /* moving highlight */
+  /* ★ 必ずシルエットより前に出す */
+  z-index: 95;
+
   background: linear-gradient(
     110deg,
     rgba(255,255,255,0.00) 0%,
@@ -296,7 +298,6 @@ body.is-complete::after{
   background-position: -120% 50%;
   animation: cobakeOutlineSweep 980ms linear infinite;
 
-  /* alpha mask: use silhouette PNG */
   -webkit-mask-image: var(--mask-url);
   mask-image: var(--mask-url);
   -webkit-mask-repeat: no-repeat;
@@ -306,11 +307,10 @@ body.is-complete::after{
   -webkit-mask-size: contain;
   mask-size: contain;
 
-  /* edge-like glow */
   filter:
-    drop-shadow(0 0 10px rgba(255,255,255,0.55))
-    drop-shadow(0 0 20px rgba(255,255,255,0.25));
-  opacity: 0.95;
+    drop-shadow(0 0 12px rgba(255,255,255,0.65))
+    drop-shadow(0 0 24px rgba(255,255,255,0.35));
+  opacity: 1;
 }
 
 @keyframes cobakeOutlineSweep{

@@ -993,6 +993,11 @@ function playFinishFanfare(){
     }
 
     filled.src = `./assets/img/cobake/monokuro/color/${id}.png`;
+
+    // CSSのアニメーションが transform を上書きして「回転が戻る」事故を防ぐ
+    filled.style.animation = "none";
+
+    // silhouette の transform をそのままコピー（逆さまなら逆さまのまま）
     filled.style.transform = tf;
 
     box.dataset.filled = "1";
