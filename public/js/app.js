@@ -959,92 +959,51 @@ document.addEventListener("click", () => {
     };
   }
 
-    ping(1245, t0 + 0.00, 0.20, 0.28);
-    ping(1660, t0 + 0.05, 0.26, 0.22);
-    ping(2489, t0 + 0.10, 0.18, 0.14);
+  function checkAllFilled(){
+    const boxes = stage ? stage.querySelectorAll(".silhouette-box") : [];
+    if (!boxes.length) return false;
+    for (const b of boxes){
+      if (b.dataset.filled !== "1") return false;
+    }
+    return true;
+  }
 
-    // きらめきノイズ
-    const noiseDur = 0.09;
-    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++){
-      const t = i / data.length;
-      const env = Math.exp(-t * 7.5);
-      data[i] = (Math.random() * 2 - 1) * 0.30 * env;
+  function playFinishFanfare(){
+    // 1) file priority
+    if (playSoundFile("complete")) return;
+
+    // 2) WebAudio fallback
+    const ctx = ensureAudio();
+    if (!ctx) return;
+
+    if (ctx.state === "suspended"){
+      ctx.resume().catch(() => {});
     }
 
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
+    const t0 = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, t0);
+    master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.60);
+    master.connect(ctx.destination);
 
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.setValueAtTime(3200, t0);
-
-    const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.0001, t0);
-    ng.gain.exponentialRampToValueAtTime(0.12, t0 + 0.01);
-    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + noiseDur);
-
-    noise.connect(hp);
-    hp.connect(ng);
-    ng.connect(master);
-
-    noise.start(t0 + 0.015);
-    noise.stop(t0 + 0.015 + noiseDur);
-
-    noise.onended = () => {
-      try { noise.disconnect(); } catch(_){}
-      try { hp.disconnect(); } catch(_){}
-      try { ng.disconnect(); } catch(_){}
-      try { master.disconnect(); } catch(_){}
-    };
+    const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+    notes.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(f, t0 + i * 0.08);
+      g.gain.setValueAtTime(0.0001, t0 + i * 0.08);
+      g.gain.exponentialRampToValueAtTime(0.22, t0 + i * 0.08 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.08 + 0.30);
+      o.connect(g);
+      g.connect(master);
+      o.start(t0 + i * 0.08);
+      o.stop(t0 + i * 0.08 + 0.32);
+    });
   }
 
   function trySnap(piece){
-    function checkAllFilled(){
-  const boxes = stage ? stage.querySelectorAll(".silhouette-box") : [];
-  if (!boxes.length) return false;
-  for (const b of boxes){
-    if (b.dataset.filled !== "1") return false;
-  }
-  return true;
-}
-
-function playFinishFanfare(){
-  // 1) file priority
-  if (playSoundFile("complete")) return;
-
-  // 2) WebAudio fallback
-  const ctx = ensureAudio();
-  if (!ctx) return;
-
-  if (ctx.state === "suspended"){
-    ctx.resume().catch(() => {});
-  }
-
-  const t0 = ctx.currentTime;
-  const master = ctx.createGain();
-  master.gain.setValueAtTime(0.0001, t0);
-  master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
-  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.60);
-  master.connect(ctx.destination);
-
-  const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
-  notes.forEach((f, i) => {
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.setValueAtTime(f, t0 + i * 0.08);
-    g.gain.setValueAtTime(0.0001, t0 + i * 0.08);
-    g.gain.exponentialRampToValueAtTime(0.22, t0 + i * 0.08 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.08 + 0.30);
-    o.connect(g);
-    g.connect(master);
-    o.start(t0 + i * 0.08);
-    o.stop(t0 + i * 0.08 + 0.32);
-  });
-}
-
     if (!piece) return false;
     if (piece.dataset.snapped === "1") return true;
 
