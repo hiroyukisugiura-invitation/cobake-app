@@ -998,40 +998,85 @@ document.addEventListener("click", () => {
     return true;
   }
 
-  function playFinishFanfare(){
-    // 1) file priority
-    if (playSoundFile("complete")) return;
+function playFinishFanfare(){
+  // 1) file priority
+  if (playSoundFile("complete")) return;
 
-    // 2) WebAudio fallback
-    const ctx = ensureAudio();
-    if (!ctx) return;
+  // 2) WebAudio fallback（祝福ファンファーレ）
+  const ctx = ensureAudio();
+  if (!ctx) return;
 
-    if (ctx.state === "suspended"){
-      ctx.resume().catch(() => {});
-    }
-
-    const t0 = ctx.currentTime;
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, t0);
-    master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.01);
-    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.60);
-    master.connect(ctx.destination);
-
-    const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
-    notes.forEach((f, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(f, t0 + i * 0.08);
-      g.gain.setValueAtTime(0.0001, t0 + i * 0.08);
-      g.gain.exponentialRampToValueAtTime(0.22, t0 + i * 0.08 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.08 + 0.30);
-      o.connect(g);
-      g.connect(master);
-      o.start(t0 + i * 0.08);
-      o.stop(t0 + i * 0.08 + 0.32);
-    });
+  if (ctx.state === "suspended"){
+    ctx.resume().catch(() => {});
   }
+
+  const t0 = ctx.currentTime;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.45, t0 + 0.02);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.6);
+  master.connect(ctx.destination);
+
+  function tone(freq, start, dur, peak, type="triangle"){
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g);
+    g.connect(master);
+    o.start(start);
+    o.stop(start + dur);
+  }
+
+  // メインコード（明るい長調・上昇）
+  // C5 → E5 → G5 → C6
+  tone(523.25, t0 + 0.00, 0.55, 0.28);
+  tone(659.25, t0 + 0.12, 0.55, 0.26);
+  tone(783.99, t0 + 0.24, 0.55, 0.24);
+  tone(1046.50, t0 + 0.36, 0.85, 0.30);
+
+  // ハーモニー（少し遅れて厚みを出す）
+  tone(659.25, t0 + 0.40, 0.70, 0.18, "sine");
+  tone(783.99, t0 + 0.52, 0.70, 0.16, "sine");
+
+  // きらめき（高音ベル）
+  const sparkle = [1567.98, 2093.00]; // G6 C7
+  sparkle.forEach((f, i) => {
+    tone(f, t0 + 0.30 + i * 0.08, 0.35, 0.14, "sine");
+  });
+
+  // 軽いシンバル風ノイズ
+  const noiseDur = 0.25;
+  const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * noiseDur), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++){
+    const t = i / data.length;
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 6) * 0.25;
+  }
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.setValueAtTime(3000, t0);
+
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.0001, t0 + 0.28);
+  ng.gain.exponentialRampToValueAtTime(0.18, t0 + 0.30);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.60);
+
+  noise.connect(hp);
+  hp.connect(ng);
+  ng.connect(master);
+
+  noise.start(t0 + 0.28);
+  noise.stop(t0 + 0.28 + noiseDur);
+}
 
     function showHazimekaraOverlay(){
     if (!stage) return;
