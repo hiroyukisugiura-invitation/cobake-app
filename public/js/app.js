@@ -23,7 +23,6 @@ function applyGameTheme(){
   const c = GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
   window.COBakeTheme.color = c;
 
-  // バックカラー（ベビー系）
   const map = {
     green:  "#baf7b8",
     blue:   "#b9e6ff",
@@ -31,16 +30,23 @@ function applyGameTheme(){
     yellow: "#fff2a6"
   };
 
+  // stage 背景は常に即時反映
   if (stage){
     stage.style.backgroundColor = map[c] || "#baf7b8";
   }
 
-  // GAMEバックボード：色別PNGを直接差し替え（新assets構成）
+  // gameBg は DOM 構築後でないと null になる環境があるため、必ず存在確認
   const gameBg = document.getElementById("gameBg");
-  if (gameBg){
-    gameBg.style.filter = "none"; // 念のため既存フィルターを無効化
+  if (!gameBg) return;
+
+  // src を一度クリアしてから差し替え（Safari / iOS 対策）
+  gameBg.src = "";
+  gameBg.removeAttribute("src");
+
+  // 次フレームで確実に反映
+  requestAnimationFrame(() => {
     gameBg.src = `./assets/img/cobake/ui/game_${c}.png`;
-  }
+  });
 }
 
 // game ui
