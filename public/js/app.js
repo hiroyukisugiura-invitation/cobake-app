@@ -45,7 +45,7 @@ function applyGameTheme(){
 
   // 次フレームで確実に反映
   requestAnimationFrame(() => {
-    gameBg.src = `./assets/img/cobake/ui/game_${c}.png`;
+    gameBg.src = `/assets/img/cobake/ui/game_${c}.png`;
   });
 }
 
@@ -370,7 +370,7 @@ const box = document.createElement("div");
 
     const img = document.createElement("img");
     img.className = "silhouette";
-    img.src = `./assets/img/cobake/monokuro/bk/${id}.png`;
+    img.src = `/assets/img/cobake/bk/${id}.png`;
     img.alt = "";
     img.draggable = false;
     img.style.position = "absolute";
@@ -381,7 +381,7 @@ const box = document.createElement("div");
     img.style.objectFit = "contain";
 
     // 輪郭マスク用（CSSで var(--mask-url) を参照）
-    box.style.setProperty("--mask-url", `url("./assets/img/cobake/monokuro/bk/${id}.png")`);
+    box.style.setProperty("--mask-url", `url("/assets/img/cobake/bk/${id}.png")`)
 
     const rot = pickRot();
 
@@ -586,7 +586,7 @@ function startSequence(){
 
     const img = document.createElement("img");
     img.className = "start-pop";
-    img.src = `./assets/img/cobake/monokuro/color/${c.id}.png`;
+    img.src = `/assets/img/cobake/color/${c.id}.png`;
     img.alt = "";
     img.draggable = false;
 
@@ -656,7 +656,7 @@ function buildCobakeList(){
 
     btn.innerHTML = `
       <img class="thumb-img"
-           src="./assets/img/cobake/monokuro/monokuro/${c.id}.png"
+           src="/assets/img/cobake/monokuro/monokuro/${c.id}.png"
            alt="${c.name}"
            draggable="false" />
     `;
@@ -695,7 +695,7 @@ function createPiece(id, leftPx, topPx){
   el.style.transformOrigin = "50% 50%";
 
   // 輪郭マスク用（CSSで var(--mask-url) を参照）
-  el.style.setProperty("--mask-url", `url("./assets/img/cobake/monokuro/monokuro/${id}.png")`);
+  el.style.setProperty("--mask-url", `url("/assets/img/cobake/monokuro/monokuro/${id}.png")`);
 
   // iOS/PC共通：誤選択・ドラッグ画像防止
   el.style.userSelect = "none";
@@ -705,7 +705,7 @@ function createPiece(id, leftPx, topPx){
   el.innerHTML = `
     <img
       class="piece-img"
-      src="./assets/img/cobake/monokuro/monokuro/${id}.png"
+      src="/assets/img/cobake/monokuro/monokuro/${id}.png"
       alt="${id}"
       draggable="false"
       style="
@@ -1061,7 +1061,7 @@ document.addEventListener("click", () => {
     overlay.style.placeItems = "center";
 
     const img = document.createElement("img");
-    img.src = "./button/hazimekara.png";
+    img.src = "/button/hazimekara.png";
     img.alt = "はじめから";
     img.draggable = false;
     img.style.width = "min(720px, 30%)";
@@ -1149,7 +1149,7 @@ overlay.addEventListener("click", (e) => {
       box.appendChild(filled);
     }
 
-    filled.src = `./assets/img/cobake/monokuro/color/${id}.png`;
+    filled.src = `/assets/img/cobake/color/${id}.png`;
 
     // CSSのアニメーションが transform を上書きして「回転が戻る」事故を防ぐ
     filled.style.animation = "none";
@@ -1326,7 +1326,7 @@ overlay.addEventListener("click", (e) => {
     // ghost element
     if (dragGhost) dragGhost.remove();
     dragGhost = document.createElement("img");
-    dragGhost.src = `./assets/img/cobake/monokuro/monokuro/${id}.png`;
+    dragGhost.src = `/assets/img/cobake/monokuro/monokuro/${id}.png`;
     dragGhost.alt = "";
     dragGhost.draggable = false;
     dragGhost.style.position = "fixed";
