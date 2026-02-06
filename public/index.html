@@ -32,12 +32,12 @@
     <section class="screen is-active" id="screenStart" aria-label="start">
       <div class="start-layer" id="startLayer">
 
-        <!-- base (START only) -->
+        <!-- base (GAME only) -->
         <img
-          class="start-bg"
-          id="startBg"
-          src="/assets/ui/start_ui.png"
-          alt="COBAKE Start"
+          class="stage-bg"
+          id="gameBg"
+          src="/assets/ui/game_green.png"
+          alt="COBAKE Game"
         />
 
         <!-- popping cobakes (JS will inject) -->
@@ -71,12 +71,12 @@
     <section class="screen" id="screenGame" aria-label="game">
       <div class="stage" id="stage">
 
-        <!-- base (GAME only) -->
+        <!-- base (START only) -->
         <img
-          class="stage-bg"
-          id="gameBg"
-          src="/assets/img/cobake/ui/game_green.png"
-          alt="COBAKE Game"
+          class="start-bg"
+          id="startBg"
+          src="/assets/ui/start_ui.png"
+          alt="COBAKE Start"
         />
 
         <!-- dokokana button (hidden at first) -->

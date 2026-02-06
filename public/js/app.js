@@ -453,8 +453,11 @@ function goGame(){
   // ゲーム開始の度にテーマ色を適用
   applyGameTheme();
 
-  // スクショ3（シルエット：画面いっぱい）
-  buildGameSilhouettes();
+  // レイアウト確定後に必ずシルエット生成
+  requestAnimationFrame(() => {
+    syncStageSize();        // stage サイズを確定
+    buildGameSilhouettes(); // ここで初めて生成
+  });
 
   // GAME遷移直後に即ガイド表示（待ち時間ゼロ）
   show(dokokanaBtn);
@@ -1639,6 +1642,17 @@ window.addEventListener("orientationchange", () => {
 // 初期同期
 syncStageSize();
 
+// 画面が緑一色になる事故防止：どちらも非アクティブならSTARTへ強制復帰
+if (screenStart && screenGame){
+  const sOn = screenStart.classList.contains("is-active");
+  const gOn = screenGame.classList.contains("is-active");
+  if (!sOn && !gOn){
+    screenStart.classList.add("is-active");
+    screenGame.classList.remove("is-active");
+  }
+}
+
 buildCobakeList();
 startSequence();
+
 
