@@ -34,6 +34,18 @@ function applyGameTheme(){
   if (stage){
     stage.style.backgroundColor = map[c] || "#baf7b8";
   }
+
+  // GAMEのバックボードは画像(main_ui.png)が前面にあるため、画像側も色を変える
+  const gameBg = document.getElementById("gameBg");
+  if (gameBg){
+    const filterMap = {
+      green:  "none",
+      blue:   "hue-rotate(170deg) saturate(1.15)",
+      pink:   "hue-rotate(300deg) saturate(1.10)",
+      yellow: "hue-rotate(55deg) saturate(1.10)"
+    };
+    gameBg.style.filter = filterMap[c] || "none";
+  }
 }
 
 // game ui
