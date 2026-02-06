@@ -1610,5 +1610,26 @@ overlay.addEventListener("click", (e) => {
 // =========================
 // Boot
 // =========================
+function syncStageSize(){
+  if (!stage) return;
+
+  const r = stage.getBoundingClientRect();
+  stage.style.width  = `${r.width}px`;
+  stage.style.height = `${r.height}px`;
+}
+
+// iOS Safari / 回転 / アドレスバー変動 対策
+window.addEventListener("resize", () => {
+  window.requestAnimationFrame(syncStageSize);
+});
+
+window.addEventListener("orientationchange", () => {
+  window.setTimeout(syncStageSize, 50);
+});
+
+// 初期同期
+syncStageSize();
+
 buildCobakeList();
 startSequence();
+

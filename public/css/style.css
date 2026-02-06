@@ -39,18 +39,41 @@ body.is-complete::after{
 }
 
 .app{
-  height:100%;
-  display:grid;
-  place-items:center;
-  padding:24px;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    calc(24px + env(safe-area-inset-right))
+    calc(24px + env(safe-area-inset-bottom))
+    calc(24px + env(safe-area-inset-left));
 }
 
 .screen{
   display:none;
-  width:min(1024px, 100%);
+  width: min(1024px, 100%);
+  height: auto;
   aspect-ratio: 3 / 4;
 }
 .screen.is-active{ display:block; }
+
+/* iPhone / iPad：画面いっぱい（safe-area込み） */
+@media (hover: none) and (pointer: coarse){
+  .app{
+    place-items: stretch;
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  .screen{
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}
 
 /* =========================
    START
@@ -459,6 +482,40 @@ body.is-complete::after{
 #menuBtn img{
   width: 40px;   /* ← ここを自由に変更 */
   height: auto;
+}
+
+/* iPhone / iPad：safe-area 対応（ノッチ / ホームバー回避） */
+@media (hover: none) and (pointer: coarse){
+  .legal-icons{
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  #ghostBtn{
+    top: calc(16px + env(safe-area-inset-top));
+    right: calc(16px + env(safe-area-inset-right));
+  }
+
+  #menuBtn{
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    right: calc(16px + env(safe-area-inset-right));
+  }
+
+  .drawer{
+    top: calc(130px + env(safe-area-inset-top));
+    right: calc(16px + env(safe-area-inset-right));
+    height: calc(100% - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .popup{
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  .start-layer,
+  .stage{
+    border-radius: 0;
+  }
 }
 
 /* dokokana button */
