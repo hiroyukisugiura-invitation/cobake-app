@@ -35,16 +35,11 @@ function applyGameTheme(){
     stage.style.backgroundColor = map[c] || "#baf7b8";
   }
 
-  // GAMEのバックボードは画像(main_ui.png)が前面にあるため、画像側も色を変える
+  // GAMEバックボード：色別PNGを直接差し替え（新assets構成）
   const gameBg = document.getElementById("gameBg");
   if (gameBg){
-    const filterMap = {
-      green:  "none",
-      blue:   "hue-rotate(170deg) saturate(1.15)",
-      pink:   "hue-rotate(300deg) saturate(1.10)",
-      yellow: "hue-rotate(55deg) saturate(1.10)"
-    };
-    gameBg.style.filter = filterMap[c] || "none";
+    gameBg.style.filter = "none"; // 念のため既存フィルターを無効化
+    gameBg.src = `./assets/img/cobake/ui/game_${c}.png`;
   }
 }
 
