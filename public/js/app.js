@@ -456,13 +456,9 @@ function goGame(){
   // スクショ3（シルエット：画面いっぱい）
   buildGameSilhouettes();
 
-  // スクショ4（dokokana表示はするが、押させない）
-  hide(dokokanaBtn);
-  window.setTimeout(() => {
-    show(dokokanaBtn);
-    // どこタップでも開始
-    armGameStartTap();
-  }, 420);
+  // GAME遷移直後に即ガイド表示（待ち時間ゼロ）
+  show(dokokanaBtn);
+  armGameStartTap();
 }
 
 function goStart(){

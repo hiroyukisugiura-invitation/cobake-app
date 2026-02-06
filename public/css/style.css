@@ -1015,3 +1015,13 @@ body.is-complete::after{
 @keyframes regSpin{
   to{ transform: rotate(360deg); }
 }
+
+/* =========================
+   GAME UI layer fix
+========================= */
+.stage-bg{ z-index: 0; }
+.silhouette-layer{ z-index: 80; }
+.dokokana-btn{ z-index: 250; }
+.icon-btn{ z-index: 300; }
+.popup{ z-index: 350; }
+.drawer{ z-index: 360; }
