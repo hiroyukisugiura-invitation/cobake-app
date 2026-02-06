@@ -1625,7 +1625,13 @@ overlay.addEventListener("click", (e) => {
 function syncStageSize(){
   if (!stage) return;
 
+  // 非表示時（display:none）は rect が 0 になるため、0px 固定事故を防ぐ
+  stage.style.width = "";
+  stage.style.height = "";
+
   const r = stage.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+
   stage.style.width  = `${r.width}px`;
   stage.style.height = `${r.height}px`;
 }
