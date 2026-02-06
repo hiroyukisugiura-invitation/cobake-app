@@ -45,7 +45,7 @@ function applyGameTheme(){
 
   // 次フレームで確実に反映
   requestAnimationFrame(() => {
-    gameBg.src = `/assets/img/cobake/ui/game_${c}.png`;
+    gameBg.src = `/assets/ui/game_${c}.png`;
   });
 }
 
