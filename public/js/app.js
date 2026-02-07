@@ -1273,12 +1273,18 @@ overlay.addEventListener("click", (e) => {
   hide(popup);
   hide(dokokanaBtn);
 
+  // ★ここで毎回テーマ色（gameBg/背景）を更新する
+  applyGameTheme();
+
   // 既存シルエットを一旦削除
   const layer = stage.querySelector(".silhouette-layer");
   if (layer) layer.remove();
 
-  // シルエット再生成
-  buildGameSilhouettes();
+  // レイアウト確定後に再生成（iOSの表示確定待ち）
+  requestAnimationFrame(() => {
+    syncStageSize();
+    buildGameSilhouettes();
+  });
 
   // 「コバケどこかな？」を表示して、どこタップでも開始状態へ
   show(dokokanaBtn);
