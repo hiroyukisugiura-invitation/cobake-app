@@ -117,6 +117,21 @@ body.is-complete::after{
   position:absolute;
   inset:0;
   pointer-events:none;
+
+  /* STARTボード外（透過部分）にコバケがはみ出さないようにクリップ */
+  -webkit-mask-image: url("/assets/ui/start_ui.png");
+  mask-image: url("/assets/ui/start_ui.png");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+
+  /* 緑枠内に収め、フッター（COBAKEロゴ帯）より上で完全に止める */
+  overflow: hidden;
+  -webkit-clip-path: inset(18px 18px 140px 18px round 24px);
+  clip-path: inset(18px 18px 140px 18px round 24px);
 }
 
 .start-pop{
@@ -155,7 +170,7 @@ body.is-complete::after{
 .start-btn{
   position:absolute;
   left:50%;
-  bottom: 300px;      /* ui-stage基準で固定 */
+  bottom: 900px;
   transform: translateX(-50%);
   border:0;
   background:transparent;
@@ -166,7 +181,7 @@ body.is-complete::after{
 }
 
 .start-btn img{
-  width: 180px;
+  width: 140px;
   height:auto;
   display:block;
 }
@@ -178,8 +193,8 @@ body.is-complete::after{
 
 .legal-icons{
   position:absolute;
-  right: 32px;     /* ui-stage内固定 */
-  bottom: 32px;
+  right: 430px;
+  bottom: 55px;
   display:flex;
   gap: 14px;
   z-index: 80;

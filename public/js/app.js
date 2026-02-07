@@ -544,20 +544,20 @@ const START_LAYOUT =
         { cx: 0.50, bottom: 0.11, z: 5  }  // top-small
       ]
     : [
-        // desktop (existing)
-        { cx: 0.20, bottom: 0.01, z: 10 },
-        { cx: 0.88, bottom: 0.00, z: 8  },
-        { cx: 0.96, bottom: -0.02, z: 9  },
+        // desktop (ui-stage前提で枠内に収める)
+        { cx: 0.28, bottom: 0.00, z: 10 }, // big-left
+        { cx: 0.72, bottom: 0.00, z: 10 }, // big-right
 
-        { cx: 0.67, bottom: 0.11, z: 4  },
+        { cx: 0.38, bottom: 0.00, z: 7  }, // mid-left
+        { cx: 0.62, bottom: 0.00, z: 7  }, // mid-right
 
-        { cx: 0.56, bottom: 0.00, z: 7  },
-        { cx: 0.36, bottom: 0.00, z: 6  },
+        { cx: 0.22, bottom: 0.06, z: 6  }, // small cluster
+        { cx: 0.34, bottom: 0.06, z: 6  },
+        { cx: 0.50, bottom: 0.05, z: 6  },
+        { cx: 0.66, bottom: 0.06, z: 6  },
+        { cx: 0.78, bottom: 0.06, z: 6  },
 
-        { cx: 0.73, bottom: 0.00, z: 6  },
-        { cx: 0.79, bottom: 0.00, z: 6  },
-        { cx: 0.64, bottom: 0.00, z: 6  },
-        { cx: 0.59, bottom: 0.03, z: 6  }
+        { cx: 0.50, bottom: 0.11, z: 5  }  // top-small
       ];
 
 function startSequence(){
@@ -577,11 +577,11 @@ function startSequence(){
   const baseW = isMobile ? 200 : 220;
 
   // 画面外防止（巨大スケールでも最大この幅まで）
-  const maxW = isMobile ? (W * 0.78) : (W * 0.60);
+  const maxW = isMobile ? (W * 0.78) : (W * 0.42);
 
-  // フッター被り防止：スマホはホームバー分を考慮して持ち上げを弱める
-  const baseBottom = isMobile ? 0.06 : 0.08;
-  const minBottom  = isMobile ? 0.05 : 0.06;
+  // フッター被り防止：mobileのみ持ち上げ、desktopは持ち上げない
+  const baseBottom = isMobile ? 0.06 : 0.00;
+  const minBottom  = isMobile ? 0.05 : 0.00;
 
   // ids を毎回ランダム化（表示が固定化しないように）
   const ids = list.map(c => c.id);
@@ -615,8 +615,9 @@ function startSequence(){
     img.style.width = `${w}px`;
     img.style.height = "auto";
 
-    // position (center-x)
-    const left = clamp((W * slot.cx) - (w / 2), 0, Math.max(0, W - w));
+    // position (center-x) : 左右に固定マージンを設けて枠外ゼロ
+    const sideM = 12;
+    const left = clamp((W * slot.cx) - (w / 2), sideM, Math.max(sideM, W - w - sideM));
     img.style.left = `${left}px`;
 
     // position (bottom) : baseBottom + slot.bottom（下端のフッターに被らない）
