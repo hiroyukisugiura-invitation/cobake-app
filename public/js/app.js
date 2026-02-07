@@ -1323,7 +1323,6 @@ overlay.addEventListener("click", (e) => {
     const d = Math.hypot(dx, dy);
 
     // 子供向け：位置のみで吸着判定（嵌め込みはシルエット側で固定）
-    const s = uiScale();
     const thr = Math.max(18, Math.min(64, Math.min(br.width / s, br.height / s) * 0.26));
     if (d > thr) return false;
 
@@ -1784,7 +1783,6 @@ overlay.addEventListener("click", (e) => {
           const dy = boxCy - ny;
           const dd = Math.hypot(dx, dy);
 
-          const s = uiScale();
           const thr = Math.max(16, Math.min(52, Math.min(br.width / s, br.height / s) * 0.19));
           const magR = thr * 1.6;
 
@@ -1864,7 +1862,11 @@ function fitUIScale(){
   const availW = app.clientWidth - padX;
   const availH = app.clientHeight - padY;
 
-  const scale = Math.min(availW / baseW, availH / baseH);
+  // 拡大は禁止：縮小のみ許可
+  const scale = Math.min(
+    1,
+    Math.min(availW / baseW, availH / baseH)
+  );
 
   document.documentElement.style.setProperty("--ui-scale", String(scale));
 }
