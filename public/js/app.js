@@ -218,9 +218,8 @@ function buildGameSilhouettes(){
   layer.className = "silhouette-layer";
   stage.appendChild(layer);
 
-  const rect = stage.getBoundingClientRect();
-  const W = rect.width;
-  const H = rect.height;
+  const W = stage.clientWidth;
+  const H = stage.clientHeight;
 
   // 深緑枠内の安全マージン（永久に枠外NG）
   const mLeft   = Math.round(W * 0.08);
@@ -455,7 +454,7 @@ function goGame(){
 
   // レイアウト確定後に必ずシルエット生成
   requestAnimationFrame(() => {
-    syncStageSize();        // stage サイズを確定
+    syncStageSize();        // ui-scale を確定
     buildGameSilhouettes(); // ここで初めて生成
   });
 
@@ -566,8 +565,7 @@ function startSequence(){
   startPopArea.innerHTML = "";
   hide(startBtn);
 
-  const rect = (startLayer || startPopArea).getBoundingClientRect();
-  const W = rect.width;
+  const W = (startLayer || startPopArea).clientWidth;
 
   // pop timing
   const baseDelay = 120; // ms
@@ -737,8 +735,9 @@ btn.addEventListener("pointerdown", (e) => {
 
         if (!stage) return;
         const r = stage.getBoundingClientRect();
-        const cx = r.width * 0.5;
-        const cy = r.height * 0.5;
+        const s = uiScale();
+        const cx = (r.width / s) * 0.5;
+        const cy = (r.height / s) * 0.5;
 
         const el = createPiece(c.id, cx, cy);
         if (el){
@@ -778,8 +777,11 @@ function createPiece(id, leftPx, topPx){
 
   // 座標が不正（NaN/Infinity/undefined）なら中央に落とす
   const r = stage.getBoundingClientRect();
-  const cx0 = r.width * 0.5;
-  const cy0 = r.height * 0.5;
+  const s = uiScale();
+  const W = r.width / s;
+  const H = r.height / s;
+  const cx0 = W * 0.5;
+  const cy0 = H * 0.5;
 
   let x = Number(leftPx);
   let y = Number(topPx);
@@ -788,8 +790,8 @@ function createPiece(id, leftPx, topPx){
   if (!Number.isFinite(y)) y = cy0;
 
   // 必ずステージ内に収める（左上0固定事故を防ぐ）
-  x = Math.max(0, Math.min(r.width,  x));
-  y = Math.max(0, Math.min(r.height, y));
+  x = Math.max(0, Math.min(W, x));
+  y = Math.max(0, Math.min(H, y));
 
   // piece container（子要素を持てるように img → div に変更）
   const el = document.createElement("div");
@@ -881,7 +883,8 @@ function createPiece(id, leftPx, topPx){
 function spawnPiece(id){
   if (!stage) return;
   const r = stage.getBoundingClientRect();
-  createPiece(id, r.width * 0.5, r.height * 0.5);
+  const s = uiScale();
+  createPiece(id, (r.width / s) * 0.5, (r.height / s) * 0.5);
 }
 
 // =========================
@@ -1307,9 +1310,10 @@ overlay.addEventListener("click", (e) => {
 
     const br = box.getBoundingClientRect();
     const sr = stageRect();
+    const s = uiScale();
 
-    const boxCx = (br.left - sr.left) + br.width / 2;
-    const boxCy = (br.top - sr.top) + br.height / 2;
+    const boxCx = ((br.left - sr.left) + br.width / 2) / s;
+    const boxCy = ((br.top - sr.top) + br.height / 2) / s;
 
     const pieceLeft = Number.parseFloat(piece.style.left) || 0;
     const pieceTop  = Number.parseFloat(piece.style.top)  || 0;
@@ -1319,7 +1323,8 @@ overlay.addEventListener("click", (e) => {
     const d = Math.hypot(dx, dy);
 
     // 子供向け：位置のみで吸着判定（嵌め込みはシルエット側で固定）
-    const thr = Math.max(18, Math.min(64, Math.min(br.width, br.height) * 0.26));
+    const s = uiScale();
+    const thr = Math.max(18, Math.min(64, Math.min(br.width / s, br.height / s) * 0.26));
     if (d > thr) return false;
 
     // シルエット側にカラーをピッチリ嵌め込む
@@ -1374,12 +1379,16 @@ overlay.addEventListener("click", (e) => {
 
     return true;
   }
-
+  function uiScale(){
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"));
+    return (Number.isFinite(v) && v > 0) ? v : 1;
+  }
   function stageRect(){ return stage.getBoundingClientRect(); }
 
   function localXY(clientX, clientY){
     const r = stageRect();
-    return { x: clientX - r.left, y: clientY - r.top, w: r.width, h: r.height };
+    const s = uiScale();
+    return { x: (clientX - r.left) / s, y: (clientY - r.top) / s, w: r.width / s, h: r.height / s };
   }
 
   function getScale(el){
@@ -1565,14 +1574,19 @@ overlay.addEventListener("click", (e) => {
 
       if (inside){
         // stage 内座標を直接算出し、必ず clamp（左上0固定事故を防ぐ）
-        let x = cx - r.left;
-        let y = cy - r.top;
+        const s = uiScale();
 
-        if (!Number.isFinite(x)) x = r.width * 0.5;
-        if (!Number.isFinite(y)) y = r.height * 0.5;
+        let x = (cx - r.left) / s;
+        let y = (cy - r.top) / s;
 
-        x = Math.max(0, Math.min(r.width,  x));
-        y = Math.max(0, Math.min(r.height, y));
+        const W = r.width / s;
+        const H = r.height / s;
+
+        if (!Number.isFinite(x)) x = W * 0.5;
+        if (!Number.isFinite(y)) y = H * 0.5;
+
+        x = Math.max(0, Math.min(W, x));
+        y = Math.max(0, Math.min(H, y));
 
         const el = createPiece(draggingId, x, y);
         if (el){
@@ -1761,15 +1775,17 @@ overlay.addEventListener("click", (e) => {
         if (box instanceof HTMLElement && box.dataset.filled !== "1"){
           const br = box.getBoundingClientRect();
           const sr = stageRect();
+          const s = uiScale();
 
-          const boxCx = (br.left - sr.left) + br.width / 2;
-          const boxCy = (br.top - sr.top) + br.height / 2;
+          const boxCx = ((br.left - sr.left) + br.width / 2) / s;
+          const boxCy = ((br.top - sr.top) + br.height / 2) / s;
 
           const dx = boxCx - nx;
           const dy = boxCy - ny;
           const dd = Math.hypot(dx, dy);
 
-          const thr = Math.max(16, Math.min(52, Math.min(br.width, br.height) * 0.19));
+          const s = uiScale();
+          const thr = Math.max(16, Math.min(52, Math.min(br.width / s, br.height / s) * 0.19));
           const magR = thr * 1.6;
 
           // hint: 一度出たら「ハマるか消すまで」止めない（距離で外さない）
@@ -1830,21 +1846,34 @@ overlay.addEventListener("click", (e) => {
   });
 })();
 
+function fitUIScale(){
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  const baseW = 390;
+  const baseH = 844;
+
+  const style = getComputedStyle(app);
+  const padX =
+    (parseFloat(style.paddingLeft) || 0) +
+    (parseFloat(style.paddingRight) || 0);
+  const padY =
+    (parseFloat(style.paddingTop) || 0) +
+    (parseFloat(style.paddingBottom) || 0);
+
+  const availW = app.clientWidth - padX;
+  const availH = app.clientHeight - padY;
+
+  const scale = Math.min(availW / baseW, availH / baseH);
+
+  document.documentElement.style.setProperty("--ui-scale", String(scale));
+}
+
 // =========================
 // Boot
 // =========================
 function syncStageSize(){
-  if (!stage) return;
-
-  // 非表示時（display:none）は rect が 0 になるため、0px 固定事故を防ぐ
-  stage.style.width = "";
-  stage.style.height = "";
-
-  const r = stage.getBoundingClientRect();
-  if (!r.width || !r.height) return;
-
-  stage.style.width  = `${r.width}px`;
-  stage.style.height = `${r.height}px`;
+  fitUIScale();
 }
 
 // iOS Safari / 回転 / アドレスバー変動 対策
@@ -1871,5 +1900,3 @@ if (screenStart && screenGame){
 
 buildCobakeList();
 startSequence();
-
-

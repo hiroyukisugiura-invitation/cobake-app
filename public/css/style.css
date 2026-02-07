@@ -4,6 +4,10 @@
   --glass: rgba(255,255,255,.30);
   --glass-border: rgba(255,255,255,.45);
   --shadow: 0 10px 30px rgba(0,0,0,.25);
+
+  --ui-base-w: 390;
+  --ui-base-h: 844;
+  --ui-scale: 1;
 }
 
 *{ box-sizing:border-box; }
@@ -39,50 +43,53 @@ body.is-complete::after{
 }
 
 .app{
-  /* 実表示高に追従（iOS Safari のアドレスバー伸縮対策） */
-  height: 100svh;      /* small viewport height */
-  min-height: 100dvh;  /* fallback */
+  height: 100svh;
+  min-height: 100dvh;
+  width: 100vw;
+  position: relative;
+
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
+
   display: grid;
   grid-template-rows: 1fr;
   place-items: stretch;
-  padding: 0;          /* フルブリード前提 */
 }
 
 .screen{
   display:none;
-  width: min(1024px, 100%);
-  height: min(100%, calc(min(1024px, 100vw) * 4 / 3));
-  max-height: 100%;
-  aspect-ratio: 3 / 4;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+
+  align-items:center;
+  justify-content:center;
 }
-.screen.is-active{ display:block; }
+.screen.is-active{ display:flex; }
 
-/* iPhone / iPad：画面いっぱい（フルブリード・余白ゼロ） */
+/* =========================
+   基準キャンバス（全端末共通）
+========================= */
+.ui-stage{
+  position: relative;
+  width: calc(var(--ui-base-w) * 1px);
+  height: calc(var(--ui-base-h) * 1px);
+
+  transform: scale(var(--ui-scale));
+  transform-origin: center;
+
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--bg);
+}
+
 @media (hover: none) and (pointer: coarse){
-  .app{
-    place-items: stretch;
-    padding: 0; /* ← 余白（枠色）が出る原因なので0に固定 */
-  }
-
-  .screen{
-    width: 100%;
-    height: 100%;
-    max-height: none;
-    aspect-ratio: auto;
-  }
-
-  /* START画像が見切れないように全体表示 */
-  .start-layer{
-    background: var(--bg);
-  }
-  .start-bg{
-    object-fit: contain;
-  }
-
-  /* 角丸は端末フルスクリーンでは切れるため解除 */
-  .start-layer,
-  .stage{
+  .ui-stage{
     border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -93,9 +100,7 @@ body.is-complete::after{
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius:24px;
   overflow:hidden;
-  box-shadow: var(--shadow);
 }
 
 .start-bg{
@@ -212,9 +217,7 @@ body.is-complete::after{
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius:24px;
   overflow:hidden;
-  box-shadow: var(--shadow);
   touch-action:none;
 }
 
