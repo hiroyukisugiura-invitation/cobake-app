@@ -69,6 +69,23 @@ body.is-complete::after{
 }
 .screen.is-active{ display:flex; }
 
+/* Desktop: DevTools開閉/リサイズでも ui-stage を固定アンカーにする（左上固定） */
+@media (hover: hover) and (pointer: fine){
+  .screen{
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .ui-stage{
+    margin-left: 0;
+    margin-top: 0;
+
+    position: absolute;
+    left: 32px;
+    top: 32px;
+  }
+}
+
 /* =========================
    基準キャンバス（全端末共通）
 ========================= */
@@ -78,7 +95,7 @@ body.is-complete::after{
   height: calc(var(--ui-base-h) * 1px);
 
   transform: scale(var(--ui-scale));
-  transform-origin: center;
+  transform-origin: top left;
 
   border-radius: 24px;
   overflow: hidden;
@@ -128,15 +145,15 @@ body.is-complete::after{
   -webkit-mask-size: contain;
   mask-size: contain;
 
-  /* 緑枠内に収め、フッター（COBAKEロゴ帯）より上で完全に止める */
+  /* 見切れ防止：clipで切らず、表示位置でフッター回避 */
   overflow: hidden;
-  -webkit-clip-path: inset(18px 18px 140px 18px round 24px);
-  clip-path: inset(18px 18px 140px 18px round 24px);
+  -webkit-clip-path: none;
+  clip-path: none;
 }
 
 .start-pop{
   position:absolute;
-  bottom: 8%;
+  bottom: 168px; /* フッター帯を確実に避ける */
   width: 220px;
   height: auto;
   transform: translateY(220px) scale(.98);
@@ -170,8 +187,8 @@ body.is-complete::after{
 .start-btn{
   position:absolute;
   left:50%;
-  bottom: 900px;
-  transform: translateX(-50%);
+  top:52%;
+  transform: translate(-50%, -50%);
   border:0;
   background:transparent;
   padding:0;
@@ -192,9 +209,9 @@ body.is-complete::after{
 }
 
 .legal-icons{
-  position:absolute;
-  right: 430px;
-  bottom: 55px;
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
   display:flex;
   gap: 14px;
   z-index: 80;
@@ -517,8 +534,8 @@ body.is-complete::after{
 /* iPhone / iPad：safe-area 対応（ノッチ / ホームバー回避） */
 @media (hover: none) and (pointer: coarse){
   .legal-icons{
-    right: calc(16px + env(safe-area-inset-right));
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    right: 32px;
+    bottom: 32px;
   }
 
   #ghostBtn{
