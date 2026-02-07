@@ -39,15 +39,13 @@ body.is-complete::after{
 }
 
 .app{
-  height: 100dvh;
+  /* 実表示高に追従（iOS Safari のアドレスバー伸縮対策） */
+  height: 100svh;      /* small viewport height */
+  min-height: 100dvh;  /* fallback */
   display: grid;
   grid-template-rows: 1fr;
-  place-items: center;
-  padding:
-    calc(24px + env(safe-area-inset-top))
-    calc(24px + env(safe-area-inset-right))
-    calc(24px + env(safe-area-inset-bottom))
-    calc(24px + env(safe-area-inset-left));
+  place-items: stretch;
+  padding: 0;          /* フルブリード前提 */
 }
 
 .screen{
@@ -59,15 +57,11 @@ body.is-complete::after{
 }
 .screen.is-active{ display:block; }
 
-/* iPhone / iPad：画面いっぱい（safe-area込み） */
+/* iPhone / iPad：画面いっぱい（フルブリード・余白ゼロ） */
 @media (hover: none) and (pointer: coarse){
   .app{
     place-items: stretch;
-    padding:
-      env(safe-area-inset-top)
-      env(safe-area-inset-right)
-      env(safe-area-inset-bottom)
-      env(safe-area-inset-left);
+    padding: 0; /* ← 余白（枠色）が出る原因なので0に固定 */
   }
 
   .screen{

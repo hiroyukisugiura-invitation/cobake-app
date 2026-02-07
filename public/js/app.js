@@ -683,40 +683,83 @@ function buildCobakeList(){
 
     // クリック選択ではなく「ドラッグ→ドロップ」にする
 btn.addEventListener("pointerdown", (e) => {
-  // iPhone：スクロール優先。長押し(180ms)でドラッグ開始
+  // ===== Mobile (touch) =====
   if (e.pointerType === "touch") {
     let moved = false;
-    let started = false;
+    let dragStarted = false;
+
+    const startX = Number(e.clientX);
+    const startY = Number(e.clientY);
+    const MOVE_PX = 10; // 微小ブレはタップ扱い
 
     const startTimer = window.setTimeout(() => {
-      if (moved) return;
-      started = true;
+      // 長押し → ドラッグ開始（ドロップは任意位置）
+      dragStarted = true;
       e.preventDefault();
       e.stopPropagation();
       startDragFromDrawer(e, c.id);
     }, 180);
 
-    const onMove = () => {
-      moved = true;
-      window.clearTimeout(startTimer);
+    const onMove = (ev) => {
+      const x = Number(ev.clientX);
+      const y = Number(ev.clientY);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(startX) || !Number.isFinite(startY)) {
+        moved = true;
+        window.clearTimeout(startTimer);
+        return;
+      }
+
+      const dx = x - startX;
+      const dy = y - startY;
+      if ((dx * dx + dy * dy) >= (MOVE_PX * MOVE_PX)) {
+        moved = true;
+        window.clearTimeout(startTimer);
+      }
     };
 
-    const onUp = (ev) => {
+    const cleanup = () => {
       window.clearTimeout(startTimer);
       document.removeEventListener("pointermove", onMove, true);
       document.removeEventListener("pointerup", onUp, true);
-      if (started) {
+      document.removeEventListener("pointercancel", onCancel, true);
+    };
+
+    const onUp = (ev) => {
+      cleanup();
+
+      // ドラッグ開始済み → drop側が処理する（ここでは何もしない）
+      if (dragStarted) return;
+
+      // タップ（一定距離未満の移動）→ 必ず中央に生成
+      if (!moved) {
         ev.preventDefault();
         ev.stopPropagation();
+
+        if (!stage) return;
+        const r = stage.getBoundingClientRect();
+        const cx = r.width * 0.5;
+        const cy = r.height * 0.5;
+
+        const el = createPiece(c.id, cx, cy);
+        if (el){
+          el.dataset.snapped = "0";
+          selectPiece(el);
+          scheduleHint(el);
+        }
       }
+    };
+
+    const onCancel = () => {
+      cleanup();
     };
 
     document.addEventListener("pointermove", onMove, true);
     document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onCancel, true);
     return;
   }
 
-  // PC：即ドラッグ開始
+  // ===== PC (mouse) =====
   e.preventDefault();
   e.stopPropagation();
   startDragFromDrawer(e, c.id);
