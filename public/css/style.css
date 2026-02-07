@@ -77,6 +77,14 @@ body.is-complete::after{
     aspect-ratio: auto;
   }
 
+  /* START画像が見切れないように全体表示 */
+  .start-layer{
+    background: var(--bg);
+  }
+  .start-bg{
+    object-fit: contain;
+  }
+
   /* 角丸は端末フルスクリーンでは切れるため解除 */
   .start-layer,
   .stage{
@@ -558,6 +566,13 @@ body.is-complete::after{
   user-select:none;
   -webkit-user-drag:none;
   touch-action:none;
+}
+
+/* iPhone / iPad：ピースを小さくする */
+@media (hover: none) and (pointer: coarse){
+  .piece{
+    width: min(360px, 62vw);
+  }
 }
 
 /* piece: interaction feel */

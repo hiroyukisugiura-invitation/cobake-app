@@ -682,11 +682,45 @@ function buildCobakeList(){
     `;
 
     // クリック選択ではなく「ドラッグ→ドロップ」にする
-    btn.addEventListener("pointerdown", (e) => {
+btn.addEventListener("pointerdown", (e) => {
+  // iPhone：スクロール優先。長押し(180ms)でドラッグ開始
+  if (e.pointerType === "touch") {
+    let moved = false;
+    let started = false;
+
+    const startTimer = window.setTimeout(() => {
+      if (moved) return;
+      started = true;
       e.preventDefault();
       e.stopPropagation();
       startDragFromDrawer(e, c.id);
-    });
+    }, 180);
+
+    const onMove = () => {
+      moved = true;
+      window.clearTimeout(startTimer);
+    };
+
+    const onUp = (ev) => {
+      window.clearTimeout(startTimer);
+      document.removeEventListener("pointermove", onMove, true);
+      document.removeEventListener("pointerup", onUp, true);
+      if (started) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    };
+
+    document.addEventListener("pointermove", onMove, true);
+    document.addEventListener("pointerup", onUp, true);
+    return;
+  }
+
+  // PC：即ドラッグ開始
+  e.preventDefault();
+  e.stopPropagation();
+  startDragFromDrawer(e, c.id);
+});
 
     cobakeList.appendChild(btn);
   });
@@ -699,6 +733,21 @@ function buildCobakeList(){
 function createPiece(id, leftPx, topPx){
   if (!stage) return null;
 
+  // 座標が不正（NaN/Infinity/undefined）なら中央に落とす
+  const r = stage.getBoundingClientRect();
+  const cx0 = r.width * 0.5;
+  const cy0 = r.height * 0.5;
+
+  let x = Number(leftPx);
+  let y = Number(topPx);
+
+  if (!Number.isFinite(x)) x = cx0;
+  if (!Number.isFinite(y)) y = cy0;
+
+  // 必ずステージ内に収める（左上0固定事故を防ぐ）
+  x = Math.max(0, Math.min(r.width,  x));
+  y = Math.max(0, Math.min(r.height, y));
+
   // piece container（子要素を持てるように img → div に変更）
   const el = document.createElement("div");
   el.className = "piece";
@@ -709,8 +758,8 @@ function createPiece(id, leftPx, topPx){
   el.dataset.rot = "0";
 
   el.style.position = "absolute";
-  el.style.left = `${leftPx}px`;
-  el.style.top  = `${topPx}px`;
+  el.style.left = `${x}px`;
+  el.style.top  = `${y}px`;
   el.style.transform = `translate(-50%, -50%) rotate(0deg) scale(1)`;
   el.style.transformOrigin = "50% 50%";
 
@@ -923,6 +972,37 @@ document.addEventListener("click", () => {
     audioCtx = new AC();
     return audioCtx;
   }
+
+  // iOS対策：ユーザー操作で AudioContext を必ず unlock
+  (function unlockAudioOnGesture(){
+    let done = false;
+
+    function unlock(){
+      if (done) return;
+      done = true;
+
+      const ctx = ensureAudio();
+      if (!ctx) return;
+
+      if (ctx.state === "suspended"){
+        ctx.resume().catch(() => {});
+      }
+
+      // silent tick（iOSで確実に開始させる）
+      try{
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(0);
+        o.stop(0.01);
+      }catch(_){}
+    }
+
+    document.addEventListener("pointerdown", unlock, { once: true, capture: true });
+    document.addEventListener("touchstart", unlock, { once: true, capture: true });
+  })();
 
   function playKachi(){
     // 1) file priority
@@ -1425,11 +1505,27 @@ overlay.addEventListener("click", (e) => {
       if (!stage || !draggingId) { draggingId = null; return; }
 
       const r = stageRect();
-      const inside = (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom);
+
+      // iOSで clientX/clientY が不正になる環境があるため防御
+      const cx = Number(ev.clientX);
+      const cy = Number(ev.clientY);
+
+      const inside =
+        Number.isFinite(cx) && Number.isFinite(cy) &&
+        (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom);
 
       if (inside){
-        const p = localXY(ev.clientX, ev.clientY);
-        const el = createPiece(draggingId, p.x, p.y);
+        // stage 内座標を直接算出し、必ず clamp（左上0固定事故を防ぐ）
+        let x = cx - r.left;
+        let y = cy - r.top;
+
+        if (!Number.isFinite(x)) x = r.width * 0.5;
+        if (!Number.isFinite(y)) y = r.height * 0.5;
+
+        x = Math.max(0, Math.min(r.width,  x));
+        y = Math.max(0, Math.min(r.height, y));
+
+        const el = createPiece(draggingId, x, y);
         if (el){
           el.dataset.snapped = "0";
           selectPiece(el);
