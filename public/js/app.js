@@ -526,21 +526,40 @@ function getScaleFromData(id){
  * - 配置「枠」は維持しつつ、表示コバケを毎回ランダムに入れ替える
  * - フッター（下端）に被らないように、全キャラを一定量（8%）持ち上げる
  */
-const START_LAYOUT = [
-  { cx: 0.20, bottom: 0.01, z: 10 },
-  { cx: 0.88, bottom: 0.00, z: 8  },
-  { cx: 0.96, bottom: -0.02, z: 9  },
+const START_LAYOUT =
+  (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)
+    ? [
+        // mobile (iPhone): この形をベースに後でDevで微調整する前提
+        { cx: 0.18, bottom: 0.00, z: 10 }, // big-left
+        { cx: 0.82, bottom: 0.00, z: 10 }, // big-right
 
-  { cx: 0.67, bottom: 0.11, z: 4  },
+        { cx: 0.30, bottom: 0.00, z: 7  }, // mid-left
+        { cx: 0.70, bottom: 0.00, z: 7  }, // mid-right
 
-  { cx: 0.56, bottom: 0.00, z: 7  },
-  { cx: 0.36, bottom: 0.00, z: 6  },
+        { cx: 0.18, bottom: 0.06, z: 6  }, // small cluster
+        { cx: 0.30, bottom: 0.06, z: 6  },
+        { cx: 0.50, bottom: 0.05, z: 6  },
+        { cx: 0.70, bottom: 0.06, z: 6  },
+        { cx: 0.82, bottom: 0.06, z: 6  },
 
-  { cx: 0.73, bottom: 0.00, z: 6  },
-  { cx: 0.79, bottom: 0.00, z: 6  },
-  { cx: 0.64, bottom: 0.00, z: 6  },
-  { cx: 0.59, bottom: 0.03, z: 6  }
-];
+        { cx: 0.50, bottom: 0.11, z: 5  }  // top-small
+      ]
+    : [
+        // desktop (existing)
+        { cx: 0.20, bottom: 0.01, z: 10 },
+        { cx: 0.88, bottom: 0.00, z: 8  },
+        { cx: 0.96, bottom: -0.02, z: 9  },
+
+        { cx: 0.67, bottom: 0.11, z: 4  },
+
+        { cx: 0.56, bottom: 0.00, z: 7  },
+        { cx: 0.36, bottom: 0.00, z: 6  },
+
+        { cx: 0.73, bottom: 0.00, z: 6  },
+        { cx: 0.79, bottom: 0.00, z: 6  },
+        { cx: 0.64, bottom: 0.00, z: 6  },
+        { cx: 0.59, bottom: 0.03, z: 6  }
+      ];
 
 function startSequence(){
   const list = window.COBAKE_DATA || [];
@@ -554,15 +573,17 @@ function startSequence(){
   const baseDelay = 120; // ms
   const stepDelay = 120; // ms
 
-  // pipple=1.0 の見た目基準（CSSの start-pop width:220px に合わせる）
-  const baseW = 220;
+  // pipple=1.0 の見た目基準（スマホは少し小さめ）
+  const isMobile = (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
+
+  const baseW = isMobile ? 200 : 220;
 
   // 画面外防止（巨大スケールでも最大この幅まで）
-  const maxW = W * 0.60;
+  const maxW = isMobile ? (W * 0.78) : (W * 0.60);
 
-  // フッター被り防止：全体を8%持ち上げ（CSS既定 bottom:8% と同じ）
-  const baseBottom = 0.08;
-  const minBottom  = 0.06;
+  // フッター被り防止：スマホはホームバー分を考慮して持ち上げを弱める
+  const baseBottom = isMobile ? 0.06 : 0.08;
+  const minBottom  = isMobile ? 0.05 : 0.06;
 
   // ids を毎回ランダム化（表示が固定化しないように）
   const ids = list.map(c => c.id);
