@@ -94,8 +94,7 @@ body.is-complete::after{
   width: calc(var(--ui-base-w) * 1px);
   height: calc(var(--ui-base-h) * 1px);
 
-  transform: scale(var(--ui-scale));
-  transform-origin: top left;
+  zoom: var(--ui-scale);
 
   border-radius: 24px;
   overflow: hidden;
@@ -114,10 +113,11 @@ body.is-complete::after{
    START
 ========================= */
 .start-layer{
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow:hidden;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .start-bg{
@@ -185,9 +185,9 @@ body.is-complete::after{
 }
 
 .start-btn{
-  position:absolute;
-  left:50%;
-  top:52%;
+  position: fixed;
+  left: 50vw;
+  top: 30vh;
   transform: translate(-50%, -50%);
   border:0;
   background:transparent;
@@ -196,6 +196,7 @@ body.is-complete::after{
   animation: fadeIn 420ms ease-out forwards;
   z-index: 999;
 }
+
 
 .start-btn img{
   width: 140px;
@@ -210,8 +211,8 @@ body.is-complete::after{
 
 .legal-icons{
   position: fixed;
-  right: 32px;
-  bottom: 32px;
+  right: calc(32px + env(safe-area-inset-right));
+  bottom: calc(32px + env(safe-area-inset-bottom));
   display:flex;
   gap: 14px;
   z-index: 80;
@@ -530,13 +531,6 @@ body.is-complete::after{
   width: 40px;   /* ← ここを自由に変更 */
   height: auto;
 }
-
-/* iPhone / iPad：safe-area 対応（ノッチ / ホームバー回避） */
-@media (hover: none) and (pointer: coarse){
-  .legal-icons{
-    right: 32px;
-    bottom: 32px;
-  }
 
   #ghostBtn{
     top: calc(16px + env(safe-area-inset-top));
