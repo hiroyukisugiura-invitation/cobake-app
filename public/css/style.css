@@ -219,6 +219,36 @@ body.is-complete::after{
   z-index: 120;
 }
 
+/* opening message wrapper */
+.opening-message-wrap{
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translate(-50%, -50%);
+  width: min(1114px, 78%);
+  pointer-events: none;
+  z-index: 121;
+}
+
+/* inherit size from image */
+.opening-message-wrap .opening-message{
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* fuwafuwa obake on 「の」 */
+.fuwafuwa-obake{
+  position: absolute;
+  left: 58%;     /* ←「の」の横位置（微調整可） */
+  top: 18%;      /* ←「の」の縦位置（微調整可） */
+  width: 72px;
+  height: auto;
+  animation: floaty 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,.18));
+}
+
 /* START footer: white band + centered logo */
 .start-footer{
   position: absolute;
