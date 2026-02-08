@@ -532,6 +532,7 @@ body.is-complete::after{
   height: auto;
 }
 
+@media (hover: none) and (pointer: coarse){
   #ghostBtn{
     top: calc(16px + env(safe-area-inset-top));
     right: calc(16px + env(safe-area-inset-right));

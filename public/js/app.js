@@ -8,8 +8,25 @@ const startBtn     = document.getElementById("startBtn");
 const startPopArea = document.getElementById("startPopArea");
 const startLayer   = document.getElementById("startLayer");
 
-// START UI は固定（文字入り専用PNGを使用）
+// START UI は固定（端末別PNG切替）
 const startBg = document.getElementById("startBg");
+
+function isIPhone(){
+  return (
+    /iPhone/.test(navigator.userAgent) &&
+    !window.MSStream
+  );
+}
+
+function applyStartBg(){
+  if (!startBg) return;
+
+  if (isIPhone()){
+    startBg.src = "/assets/ui/iphone_main.png";
+  } else {
+    startBg.src = "/assets/ui/start_ui.png";
+  }
+}
 
 // GAME 用：ゲーム開始の度に1色決定（毎回変える）
 const GAME_COLORS = ["green", "blue", "pink", "yellow"];
@@ -44,9 +61,13 @@ function applyGameTheme(){
   gameBg.removeAttribute("src");
 
   // 次フレームで確実に反映
-  requestAnimationFrame(() => {
+requestAnimationFrame(() => {
+  if (isIPhone()){
+    gameBg.src = `/assets/ui/iphone_${c}.png`;
+  } else {
     gameBg.src = `/assets/ui/game_${c}.png`;
-  });
+  }
+});
 }
 
 // game ui
@@ -574,10 +595,22 @@ function startSequence(){
   // pipple=1.0 の見た目基準（スマホは少し小さめ）
   const isMobile = (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
 
-  const baseW = isMobile ? 200 : 220;
+  // iPhone 判定（iPadは含めない）
+  const ua = navigator.userAgent || "";
+  const isIPhone = /iPhone/.test(ua) && !/iPad/.test(ua);
+
+  // STARTボタン：iPhoneだけ小さく（CSSは触らない）
+  const btnImg = startBtn ? startBtn.querySelector("img") : null;
+  if (btnImg){
+    btnImg.style.width = isIPhone ? "104px" : "";
+    btnImg.style.height = "auto";
+  }
+
+  // コバケ：iPhoneだけ縮小（フッター被り＆見切れ対策）
+  const baseW = isIPhone ? 160 : (isMobile ? 200 : 220);
 
   // 画面外防止（巨大スケールでも最大この幅まで）
-  const maxW = isMobile ? (W * 0.78) : (W * 0.42);
+  const maxW = isIPhone ? (W * 0.62) : (isMobile ? (W * 0.78) : (W * 0.42));
 
   // フッター被り防止：mobileのみ持ち上げ、desktopは持ち上げない
   const baseBottom = isMobile ? 0.06 : 0.00;
@@ -609,7 +642,8 @@ function startSequence(){
     img.draggable = false;
 
     // size
-    const s = getScaleFromData(c.id);
+    const iphoneScale = isIPhone ? 0.78 : 1.0;
+    const s = getScaleFromData(c.id) * iphoneScale;
     const w0 = baseW * s;
     const w  = Math.min(w0, maxW);
     img.style.width = `${w}px`;
@@ -1901,5 +1935,6 @@ if (screenStart && screenGame){
   }
 }
 
+applyStartBg();
 buildCobakeList();
 startSequence();
