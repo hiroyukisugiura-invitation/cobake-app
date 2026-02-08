@@ -233,7 +233,7 @@ body.is-complete::after{
   z-index: 120;
 }
 
-/* opening message wrapper */
+/* opening message wrapper（文字PNG基準） */
 .opening-message-wrap{
   position: absolute;
   left: 50%;
@@ -241,12 +241,10 @@ body.is-complete::after{
   transform: translate(-50%, -50%);
   width: min(1114px, 78%);
   pointer-events: none;
-
-  /* START画面の最前面に固定 */
   z-index: 500;
 }
 
-/* inherit size from image */
+/* 文字PNGを基準座標にする */
 .opening-message-wrap .opening-message{
   position: relative;
   width: 100%;
@@ -254,22 +252,20 @@ body.is-complete::after{
   display: block;
 }
 
-/* fuwafuwa obake on 「の」 */
+/* fuwafuwa obake：文字「の」に対してpx固定 */
 .fuwafuwa-obake{
   position: absolute;
-  left: 58%;
-  top: 18%;
-  width: 72px;
+
+  /* 「の」の実位置に対する固定px */
+  left: calc(52% + 42px);
+  top:  -200px;
+  width: 65px;
   height: auto;
 
-  animation-name: floaty;
-  animation-duration: 2.8s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
+  /* アニメーションはY軸のみ */
+  animation: floaty 2.8s ease-in-out infinite;
 
   will-change: transform;
-
-  /* vendorPrefix 警告対策：-webkit-transform と transform を両方定義 */
   transform: translate3d(0,0,0);
   -webkit-transform: translate3d(0,0,0);
 
