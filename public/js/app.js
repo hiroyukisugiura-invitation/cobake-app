@@ -8,27 +8,10 @@ const startBtn     = document.getElementById("startBtn");
 const startPopArea = document.getElementById("startPopArea");
 const startLayer   = document.getElementById("startLayer");
 
-// START UI は固定（端末別PNG切替）
+// START UI：PNGバックボードは廃止（JS側で必ず無効化）
 const startBg = document.getElementById("startBg");
 
-function isIPhone(){
-  return (
-    /iPhone/.test(navigator.userAgent) &&
-    !window.MSStream
-  );
-}
-
-function applyStartBg(){
-  if (!startBg) return;
-
-  if (isIPhone()){
-    startBg.src = "/assets/ui/iphone_main.png";
-  } else {
-    startBg.src = "/assets/ui/start_ui.png";
-  }
-}
-
-// GAME 用：ゲーム開始の度に1色決定（毎回変える）
+// GAME 用：開始の度に1色決定（毎回変える）
 const GAME_COLORS = ["green", "blue", "pink", "yellow"];
 
 // グローバル共有（後続で使用）
@@ -49,25 +32,26 @@ function applyGameTheme(){
 
   const color = map[c] || "#baf7b8";
 
-  // ===== Backboard (CSS variable) =====
-  // 画面全体のバックボード色をCSSに反映（START/GAME共通）
+  // ===== Backboard (CSS) =====
   document.documentElement.style.setProperty("--bg", color);
 
-  // ===== Stage background (GAME) =====
+  // ===== START：start_ui.png を必ず無効化 =====
+  if (startBg){
+    startBg.src = "";
+    startBg.removeAttribute("src");
+  }
+
+  // ===== GAME：ステージ色 =====
   if (stage){
     stage.style.backgroundColor = color;
   }
 
-  // ===== gameBg は従来通り（必要なら後で撤去） =====
+  // ===== GAME：game_* PNG も廃止（必ず無効化） =====
   const gameBg = document.getElementById("gameBg");
-  if (!gameBg) return;
-
-  gameBg.src = "";
-  gameBg.removeAttribute("src");
-
-  requestAnimationFrame(() => {
-    gameBg.src = `/assets/ui/game_${c}.png`;
-  });
+  if (gameBg){
+    gameBg.src = "";
+    gameBg.removeAttribute("src");
+  }
 }
 
 // game ui
@@ -507,6 +491,9 @@ function goStart(){
   screenGame.classList.remove("is-active");
   screenStart.classList.add("is-active");
 
+  // START：戻るたびにランダム色（ベビー4色）
+  applyGameTheme();
+
   // START演出を再生成
   startSequence();
 }
@@ -541,12 +528,19 @@ function getScaleFromData(id){
   return (typeof s === "number" && s > 0) ? s : 1.0;
 }
 
+/* ui-stage の scale（createPiece / drawer drop でも使用するためグローバルに定義） */
+function uiScale(){
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale"));
+  return (Number.isFinite(v) && v > 0) ? v : 1;
+}
+
 /**
  * START画面：
  * - 配置「枠」は維持しつつ、表示コバケを毎回ランダムに入れ替える
  * - フッター（下端）に被らないように、全キャラを一定量（8%）持ち上げる
  */
 const START_LAYOUT =
+
   (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)
     ? [
         // mobile (iPhone): この形をベースに後でDevで微調整する前提
@@ -1931,6 +1925,10 @@ if (screenStart && screenGame){
   }
 }
 
-applyStartBg();
+applyGameTheme();
 buildCobakeList();
 startSequence();
+git status
+git add .
+git commit -m "feat: drag move for pieces"
+git push origin main

@@ -213,9 +213,9 @@ body.is-complete::after{
 .opening-message{
   position: absolute;
   left: 50%;
-  top: 40%;
+  top: 22%;
   transform: translate(-50%, -50%);
-  width: min(520px, 78%);
+  width: min(1114px, 78%);
   height: auto;
   display: block;
   pointer-events: none;
