@@ -23,12 +23,13 @@ function applyGameTheme(){
   const c = GAME_COLORS[Math.floor(Math.random() * GAME_COLORS.length)];
   window.COBakeTheme.color = c;
 
-  const map = {
-    green:  "#baf7b8",
-    blue:   "#b9e6ff",
-    pink:   "#ffd0e4",
-    yellow: "#fff2a6"
-  };
+// Baby color palette (low saturation / high lightness)
+const map = {
+  green:  "#DFF5E3", // baby green
+  blue:   "#E6F2FF", // baby blue
+  pink:   "#FCE4EC", // baby pink
+  yellow: "#FFF6D8"  // baby yellow
+};
 
   const color = map[c] || "#baf7b8";
 
@@ -1928,7 +1929,3 @@ if (screenStart && screenGame){
 applyGameTheme();
 buildCobakeList();
 startSequence();
-git status
-git add .
-git commit -m "feat: drag move for pieces"
-git push origin main
