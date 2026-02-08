@@ -95,12 +95,13 @@ body.is-complete::after{
   width: calc(var(--ui-base-w) * 1px);
   height: calc(var(--ui-base-h) * 1px);
 
-  zoom: var(--ui-scale);
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
 
-  border-radius: 0;
-  overflow: visible;
-  box-shadow: none;
-  background: transparent;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--bg);
 }
 
 @media (hover: none) and (pointer: coarse){
@@ -621,7 +622,7 @@ body.is-complete::after{
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 520px;          /* ui-stage 基準 */
+  width: 520px;          /* desktop基準 */
   height:auto;
   z-index: 120;
   user-select:none;
@@ -629,10 +630,10 @@ body.is-complete::after{
   touch-action:none;
 }
 
-/* iPhone / iPad：ピースを小さくする */
+/* iPhone：巨大化防止（画面に応じて上限） */
 @media (hover: none) and (pointer: coarse){
   .piece{
-    width: 360px;   /* ui-stage 基準 */
+    width: min(320px, 78vw); /* ← スマホで肥大しない */
   }
 }
 
