@@ -104,10 +104,24 @@ body.is-complete::after{
   background: var(--bg);
 }
 
+/* GAME：枠（角丸/影/背景）を出さない（PCでも消す） */
+/* GAME：ui-stage を完全に論理コンテナ化（枠・背景を絶対に出さない） */
+#screenGame .ui-stage{
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: visible;
+}
+
 @media (hover: none) and (pointer: coarse){
   .ui-stage{
     border-radius: 0;
     box-shadow: none;
+  }
+
+  /* GAME：touch端末でも確実に無効 */
+  #screenGame .ui-stage{
+    background: transparent;
   }
 }
 
@@ -182,7 +196,7 @@ body.is-complete::after{
 .start-btn{
   position: absolute;
   left: 50%;
-  top: 30%;
+  top: 38%;
   transform: translate(-50%, -50%);
   border:0;
   background:transparent;
@@ -223,11 +237,13 @@ body.is-complete::after{
 .opening-message-wrap{
   position: absolute;
   left: 50%;
-  top: 22%;
+  top: 35%;
   transform: translate(-50%, -50%);
   width: min(1114px, 78%);
   pointer-events: none;
-  z-index: 121;
+
+  /* START画面の最前面に固定 */
+  z-index: 500;
 }
 
 /* inherit size from image */
