@@ -189,8 +189,8 @@ body.is-complete::after{
 }
 
 @keyframes floaty{
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-10px); }
+  0%,100% { transform: translate3d(0,0,0); }
+  50%     { transform: translate3d(0,-10px,0); }
 }
 
 .start-btn{
@@ -257,11 +257,22 @@ body.is-complete::after{
 /* fuwafuwa obake on 「の」 */
 .fuwafuwa-obake{
   position: absolute;
-  left: 58%;     /* ←「の」の横位置（微調整可） */
-  top: 18%;      /* ←「の」の縦位置（微調整可） */
+  left: 58%;
+  top: 18%;
   width: 72px;
   height: auto;
-  animation: floaty 2.8s ease-in-out infinite;
+
+  animation-name: floaty;
+  animation-duration: 2.8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+
+  will-change: transform;
+
+  /* vendorPrefix 警告対策：-webkit-transform と transform を両方定義 */
+  transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0,0,0);
+
   filter: drop-shadow(0 8px 18px rgba(0,0,0,.18));
 }
 
