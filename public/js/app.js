@@ -47,27 +47,27 @@ function applyGameTheme(){
     yellow: "#fff2a6"
   };
 
-  // stage 背景は常に即時反映
+  const color = map[c] || "#baf7b8";
+
+  // ===== Backboard (CSS variable) =====
+  // 画面全体のバックボード色をCSSに反映（START/GAME共通）
+  document.documentElement.style.setProperty("--bg", color);
+
+  // ===== Stage background (GAME) =====
   if (stage){
-    stage.style.backgroundColor = map[c] || "#baf7b8";
+    stage.style.backgroundColor = color;
   }
 
-  // gameBg は DOM 構築後でないと null になる環境があるため、必ず存在確認
+  // ===== gameBg は従来通り（必要なら後で撤去） =====
   const gameBg = document.getElementById("gameBg");
   if (!gameBg) return;
 
-  // src を一度クリアしてから差し替え（Safari / iOS 対策）
   gameBg.src = "";
   gameBg.removeAttribute("src");
 
-  // 次フレームで確実に反映
-requestAnimationFrame(() => {
-  if (isIPhone()){
-    gameBg.src = `/assets/ui/iphone_${c}.png`;
-  } else {
+  requestAnimationFrame(() => {
     gameBg.src = `/assets/ui/game_${c}.png`;
-  }
-});
+  });
 }
 
 // game ui
@@ -564,22 +564,22 @@ const START_LAYOUT =
 
         { cx: 0.50, bottom: 0.11, z: 5  }  // top-small
       ]
-    : [
-        // desktop (ui-stage前提で枠内に収める)
-        { cx: 0.28, bottom: 0.00, z: 10 }, // big-left
-        { cx: 0.72, bottom: 0.00, z: 10 }, // big-right
+: [
+  // desktop (ui-stage前提・フッター被り完全防止)
+  { cx: 0.28, bottom: 0.10, z: 10 }, // big-left
+  { cx: 0.72, bottom: 0.10, z: 10 }, // big-right
 
-        { cx: 0.38, bottom: 0.00, z: 7  }, // mid-left
-        { cx: 0.62, bottom: 0.00, z: 7  }, // mid-right
+  { cx: 0.38, bottom: 0.10, z: 7  }, // mid-left
+  { cx: 0.62, bottom: 0.10, z: 7  }, // mid-right
 
-        { cx: 0.22, bottom: 0.06, z: 6  }, // small cluster
-        { cx: 0.34, bottom: 0.06, z: 6  },
-        { cx: 0.50, bottom: 0.05, z: 6  },
-        { cx: 0.66, bottom: 0.06, z: 6  },
-        { cx: 0.78, bottom: 0.06, z: 6  },
+  { cx: 0.22, bottom: 0.16, z: 6  }, // small cluster
+  { cx: 0.34, bottom: 0.16, z: 6  },
+  { cx: 0.50, bottom: 0.15, z: 6  },
+  { cx: 0.66, bottom: 0.16, z: 6  },
+  { cx: 0.78, bottom: 0.16, z: 6  },
 
-        { cx: 0.50, bottom: 0.11, z: 5  }  // top-small
-      ];
+  { cx: 0.50, bottom: 0.22, z: 5  }  // top-small
+]
 
 function startSequence(){
   const list = window.COBAKE_DATA || [];
@@ -1602,32 +1602,28 @@ overlay.addEventListener("click", (e) => {
       const cx = Number(ev.clientX);
       const cy = Number(ev.clientY);
 
-      const inside =
-        Number.isFinite(cx) && Number.isFinite(cy) &&
-        (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom);
+      // ===== 必ず stage 内に落とす（inside判定で落ちない事故を根絶） =====
+      const s = uiScale();
 
-      if (inside){
-        // stage 内座標を直接算出し、必ず clamp（左上0固定事故を防ぐ）
-        const s = uiScale();
+      const W = r.width / s;
+      const H = r.height / s;
 
-        let x = (cx - r.left) / s;
-        let y = (cy - r.top) / s;
+      let x = (cx - r.left) / s;
+      let y = (cy - r.top) / s;
 
-        const W = r.width / s;
-        const H = r.height / s;
+      // client座標が取れない場合は中央
+      if (!Number.isFinite(x)) x = W * 0.5;
+      if (!Number.isFinite(y)) y = H * 0.5;
 
-        if (!Number.isFinite(x)) x = W * 0.5;
-        if (!Number.isFinite(y)) y = H * 0.5;
+      // stage外で離しても「最寄りの端」にclampして必ずドロップ
+      x = Math.max(0, Math.min(W, x));
+      y = Math.max(0, Math.min(H, y));
 
-        x = Math.max(0, Math.min(W, x));
-        y = Math.max(0, Math.min(H, y));
-
-        const el = createPiece(draggingId, x, y);
-        if (el){
-          el.dataset.snapped = "0";
-          selectPiece(el);
-          scheduleHint(el);
-        }
+      const el = createPiece(draggingId, x, y);
+      if (el){
+        el.dataset.snapped = "0";
+        selectPiece(el);
+        scheduleHint(el);
       }
 
       draggingId = null;

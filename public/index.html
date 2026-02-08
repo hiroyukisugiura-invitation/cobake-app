@@ -43,6 +43,16 @@
         <!-- popping cobakes (JS will inject) -->
         <div class="start-pop-area" id="startPopArea" aria-hidden="true"></div>
 
+        <!-- opening message (PNG) -->
+        <img
+          class="opening-message"
+          id="openingMessage"
+          src="./button/opening_message.png"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        />
+
         <!-- floating ghost icon -->
         <!-- NOTE: obake_ikon.png が存在しないため無効化（404防止） -->
         <!-- <img class="start-ghost" src="/assets/img/cobake/color/obake_ikon.png" alt="" aria-hidden="true" /> -->
@@ -52,18 +62,28 @@
           <img src="./button/start.png" alt="START" draggable="false" />
         </button>
 
-        <!-- legal icons (bottom-right) -->
-        <div class="legal-icons">
-          <a href="./regulations/transactions.html" aria-label="特定取引商法">
-            <img src="./button/tokusyo.png" alt="">
-          </a>
-          <a href="./regulations/terms_of_service.html" aria-label="利用規約">
-            <img src="./button/riyoukiyaku.png" alt="">
-          </a>
-          <a href="./regulations/privacy_policy.html" aria-label="プライバシーポリシー">
-            <img src="./button/privacy.png" alt="">
-          </a>
+        <!-- footer: logo + legal icons (fixed anchor) -->
+        <div class="start-footer" aria-label="footer">
+          <img
+            class="cobake-logo"
+            src="./button/cobake_logo.png"
+            alt="COBAKE"
+            draggable="false"
+          />
+
+          <div class="legal-icons">
+            <a href="./regulations/transactions.html" aria-label="特定取引商法">
+              <img src="./button/tokusyo.png" alt="">
+            </a>
+            <a href="./regulations/terms_of_service.html" aria-label="利用規約">
+              <img src="./button/riyoukiyaku.png" alt="">
+            </a>
+            <a href="./regulations/privacy_policy.html" aria-label="プライバシーポリシー">
+              <img src="./button/privacy.png" alt="">
+            </a>
+          </div>
         </div>
+
       </div>
     </section>
 
